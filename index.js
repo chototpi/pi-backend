@@ -2,9 +2,17 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const app = express();
+
+app.use(cors());
+app.use(express.json());
+
 const testRoute = require('./routes/test');
+const paymentRoute = require('./routes/payment');
+
+app.use('/api/payment', paymentRoute);
 app.use('/api/test', testRoute);
 app.use('/api/payment', require('./routes/payment'));
+app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
