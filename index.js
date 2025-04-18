@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const app = express();
+const testRoute = require('./routes/test');
+app.use('/api/test', testRoute);
 
 app.use(express.json());
 
