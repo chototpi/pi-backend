@@ -10,7 +10,7 @@ router.post('/', async (req, res) => {
   res.json({
     message: 'Tạo thanh toán thành công',
     paymentId,
-    explorerUrl: `https://pi-blockchain.net/payment/${paymentId}` // ví dụ thôi
+    explorerUrl: `https://piscan.io/payment/${paymentId}` // ví dụ thôi
   });
 });
 
