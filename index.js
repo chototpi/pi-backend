@@ -4,7 +4,7 @@ const axios = require('axios');
 const app = express();
 const testRoute = require('./routes/test');
 app.use('/api/test', testRoute);
-
+app.use('/api/payment', require('./routes/payment'));
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
