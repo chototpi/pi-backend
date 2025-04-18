@@ -1,57 +1,24 @@
-require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
+const cors = require('cors'); // Bổ sung dòng này
+
 const app = express();
 
+// Bật CORS để cho phép frontend gọi API
 app.use(cors());
+
+// Cho phép đọc dữ liệu JSON từ request
 app.use(express.json());
 
-const testRoute = require('./routes/test');
-const paymentRoute = require('./routes/payment');
+// Import các route
+const testRoutes = require('./routes/test');
+const paymentRoutes = require('./routes/payment');
 
-app.use('/api/payment', paymentRoute);
-app.use('/api/test', testRoute);
-app.use('/api/payment', require('./routes/payment'));
-app.use(cors());
-app.use(express.json());
+// Sử dụng route
+app.use('/api/test', testRoutes);
+app.use('/api/payment', paymentRoutes);
 
+// Khởi chạy server
 const PORT = process.env.PORT || 3000;
-const PI_API_KEY = process.env.PI_API_KEY;
-
-app.post('/confirm-payment', async (req, res) => {
-  const { paymentId, txid } = req.body;
-
-  if (!paymentId || !txid) {
-    return res.status(400).json({ error: 'Thiếu paymentId hoặc txid' });
-  }
-
-  try {
-    const response = await axios.post(
-      `https://api.minepi.com/payments/${paymentId}/complete`,
-      { txid },
-      {
-        headers: {
-          Authorization: `Bearer ${PI_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    res.json({
-      message: 'Thanh toán thành công!',
-      pi_response: response.data
-    });
-  } catch (error) {
-    console.error('Lỗi xác nhận:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Xác nhận thất bại', detail: error.response?.data || error.message });
-  }
-});
-
-app.get("/", (_, res) => {
-  res.send("Pi backend hoạt động!");
-});
-
 app.listen(PORT, () => {
-  console.log(`Pi backend đang chạy tại cổng ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
