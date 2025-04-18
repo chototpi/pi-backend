@@ -1,17 +1,24 @@
 const express = require('express');
 const router = express.Router();
 
+// Route demo xử lý thanh toán
 router.post('/', async (req, res) => {
-  const { username, amount, memo } = req.body;
+  try {
+    const { amount, memo, uid } = req.body;
 
-  // Giả lập tạo thanh toán (sau này bạn sẽ gọi Pi Payments API ở đây)
-  const paymentId = 'demo_' + Date.now(); // thay bằng gọi thật
+    // Giả lập xử lý thanh toán ở đây (sẽ thay bằng Pi SDK thực tế)
+    console.log(`Nhận yêu cầu thanh toán: ${amount} Pi từ ${uid} - memo: ${memo}`);
 
-  res.json({
-    message: 'Tạo thanh toán thành công',
-    paymentId,
-    explorerUrl: `https://piscan.io/payment/${paymentId}` // ví dụ thôi
-  });
+    // Trả về phản hồi demo
+    res.json({
+      success: true,
+      message: 'Yêu cầu thanh toán Pi đã được nhận.',
+      data: { amount, memo, uid }
+    });
+  } catch (err) {
+    console.error('Lỗi xử lý thanh toán:', err);
+    res.status(500).json({ success: false, message: 'Lỗi máy chủ.' });
+  }
 });
 
 module.exports = router;
