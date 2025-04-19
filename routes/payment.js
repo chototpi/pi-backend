@@ -1,23 +1,52 @@
 const express = require('express');
 const router = express.Router();
+const pi = require('../pi');
 
-// Route demo xử lý thanh toán
-router.post('/', async (req, res) => {
+const payments = {}; // Tạm lưu thông tin giao dịch (chỉ dùng cho test, sau này nên dùng database)
+
+// Route tạo thanh toán
+router.post('/create-payment', async (req, res) => {
+  const { uid, username, amount, memo } = req.body;
+
   try {
-    const { amount, memo, uid } = req.body;
+    const paymentData = {
+      amount: amount,
+      memo: memo,
+      metadata: { uid: uid },
+    };
 
-    // Giả lập xử lý thanh toán ở đây (sẽ thay bằng Pi SDK thực tế)
-    console.log(`Nhận yêu cầu thanh toán: ${amount} Pi từ ${uid} - memo: ${memo}`);
+    const payment = await pi.createPayment(paymentData, username);
+    payments[payment.identifier] = payment;
+    res.json(payment);
+  } catch (error) {
+    console.error('Lỗi tạo payment:', error);
+    res.status(500).json({ error: 'Lỗi khi tạo thanh toán' });
+  }
+});
 
-    // Trả về phản hồi demo
-    res.json({
-      success: true,
-      message: 'Yêu cầu thanh toán Pi đã được nhận.',
-      data: { amount, memo, uid }
-    });
-  } catch (err) {
-    console.error('Lỗi xử lý thanh toán:', err);
-    res.status(500).json({ success: false, message: 'Lỗi máy chủ.' });
+// Route approve (Pi gọi sau khi người dùng đồng ý)
+router.post('/approve', async (req, res) => {
+  const payment = req.body.payment;
+
+  try {
+    await pi.approvePayment(payment.identifier);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Lỗi khi approve:', error);
+    res.status(500).json({ error: 'Lỗi approve' });
+  }
+});
+
+// Route complete (Pi gọi sau khi giao dịch hoàn tất)
+router.post('/complete', async (req, res) => {
+  const payment = req.body.payment;
+
+  try {
+    await pi.completePayment(payment.identifier);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Lỗi khi complete:', error);
+    res.status(500).json({ error: 'Lỗi complete' });
   }
 });
 
