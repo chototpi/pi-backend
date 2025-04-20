@@ -1,7 +1,7 @@
-import express from 'express';
-import cors from 'cors';
-import fetch from 'node-fetch';
-import dotenv from 'dotenv';
+import express from "express";
+import cors from "cors";
+import fetch from "node-fetch";
+import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -11,14 +11,14 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-app.get('/', (req, res) => {
-  res.send('Pi Payment Backend is running');
+app.get("/", (req, res) => {
+  res.send("Pi Payment Backend is running");
 });
 
-// Approve payment
+// APPROVE PAYMENT
 app.post("/approve-payment", async (req, res) => {
   const { paymentId } = req.body;
-  console.log("Approve:", paymentId);
+  console.log("Approve request for:", paymentId);
 
   if (!paymentId) {
     return res.status(400).json({ error: "Missing paymentId" });
@@ -31,11 +31,11 @@ app.post("/approve-payment", async (req, res) => {
         Authorization: `Key ${process.env.PI_API_KEY}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({})  // <-- Phải có body (kể cả rỗng)
+      body: JSON.stringify({})  // NEW body each time
     });
 
     const text = await response.text();
-    console.log("Raw response:", text);
+    console.log("Approve raw response:", text);
 
     if (!response.ok) {
       console.error("Approve failed:", text);
@@ -45,43 +45,42 @@ app.post("/approve-payment", async (req, res) => {
     const result = JSON.parse(text);
     res.json(result);
   } catch (err) {
-    console.error("Approve catch error:", err);
+    console.error("Approve ERROR:", err);
     res.status(500).json({ error: "Server error (approve)" });
   }
 });
 
-// Complete payment
-app.post('/complete-payment', async (req, res) => {
+// COMPLETE PAYMENT
+app.post("/complete-payment", async (req, res) => {
   const { paymentId } = req.body;
-  console.log("Complete-payment:", paymentId);
+  console.log("Complete request for:", paymentId);
 
   if (!paymentId) {
-    console.error("Missing paymentId");
     return res.status(400).json({ error: "Missing paymentId" });
   }
 
   try {
     const response = await fetch(`https://api.minepi.com/payments/${paymentId}/complete`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Key ${process.env.PI_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Key ${process.env.PI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({})  // NEW body each time
     });
 
     const text = await response.text();
-    console.log("Raw response from Pi API:", text);
-    const result = await response.json();
-    console.log("Pi API complete response:", result);
+    console.log("Complete raw response:", text);
 
     if (!response.ok) {
-      console.error("Complete failed:", result);
-      return res.status(500).json({ error: result });
+      console.error("Complete failed:", text);
+      return res.status(500).json({ error: text });
     }
 
+    const result = JSON.parse(text);
     res.json(result);
-  } catch (error) {
-    console.error("Complete catch error:", error);
+  } catch (err) {
+    console.error("Complete ERROR:", err);
     res.status(500).json({ error: "Server error (complete)" });
   }
 });
