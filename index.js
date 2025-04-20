@@ -31,6 +31,8 @@ app.post("/approve-payment", async (req, res) => {
     });
 
     const result = await response.json();
+    console.log("Pi response:", result);
+    
     if (!response.ok) {
       console.error("Approve failed:", result);
       return res.status(500).json({ error: result });
@@ -58,6 +60,8 @@ app.post("/complete-payment", async (req, res) => {
     });
 
     const result = await response.json();
+    console.log("Pi response:", result);
+    
     if (!response.ok) {
       console.error("Complete failed:", result);
       return res.status(500).json({ error: result });
