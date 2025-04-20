@@ -34,6 +34,8 @@ app.post('/approve-payment', async (req, res) => {
       }
     });
 
+    const text = await response.text();
+    console.log("Raw response from Pi API:", text);
     const result = await response.json();
     console.log("Pi API approve response:", result);
 
@@ -68,6 +70,8 @@ app.post('/complete-payment', async (req, res) => {
       }
     });
 
+    const text = await response.text();
+    console.log("Raw response from Pi API:", text);
     const result = await response.json();
     console.log("Pi API complete response:", result);
 
