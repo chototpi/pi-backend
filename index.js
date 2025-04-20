@@ -28,6 +28,17 @@ app.post('/approve-payment', async (req, res) => {
   }
 });
 
+app.post("/complete-payment", async (req, res) => {
+  try {
+    const paymentId = req.body.paymentId;
+    await payments.complete(paymentId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Complete error:", error);
+    res.status(500).json({ error: error.toString() });
+  }
+});
+
 app.get('/', (req, res) => {
   res.send('Pi Payment Backend is running!');
 });
