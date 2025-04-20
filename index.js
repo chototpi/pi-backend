@@ -1,24 +1,37 @@
-const express = require('express');
-const cors = require('cors'); // Bổ sung dòng này
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { approvePayment, completePayment } from './utils/pi-api.js';
+
+dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Bật CORS để cho phép frontend gọi API
 app.use(cors());
-
-// Cho phép đọc dữ liệu JSON từ request
 app.use(express.json());
 
-// Import các route
-const testRoutes = require('./routes/test');
-const paymentRoutes = require('./routes/payment');
+app.post('/approve-payment', async (req, res) => {
+  const { paymentId } = req.body;
 
-// Sử dụng route
-app.use('/api/test', testRoutes);
-app.use('/api/payment', paymentRoutes);
+  if (!paymentId) {
+    return res.status(400).json({ error: 'Missing paymentId' });
+  }
 
-// Khởi chạy server
-const PORT = process.env.PORT || 3000;
+  try {
+    const approved = await approvePayment(paymentId);
+    const completed = await completePayment(paymentId);
+    res.json({ success: true, approved, completed });
+  } catch (error) {
+    console.error('Error processing payment:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/', (req, res) => {
+  res.send('Pi Payment Backend is running!');
+});
+
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
