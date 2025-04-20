@@ -29,30 +29,29 @@ app.post('/approve-payment', async (req, res) => {
   }
 });
 
-app.post('/complete-payment', async (req, res) => {
+app.post("/complete-payment", async (req, res) => {
   try {
     const paymentId = req.body.paymentId;
 
-    // Gọi API Pi để hoàn tất thanh toán
     const response = await fetch(`https://api.minepi.com/payments/${paymentId}/complete`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Key ${process.env.PI_API_SECRET}`, // lấy từ .env
-        'Content-Type': 'application/json'
+        "Authorization": `Key ${process.env.PI_API_KEY}`,
+        "Content-Type": "application/json"
       }
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Pi API Error:', errorText);
-      return res.status(500).json({ error: 'Failed to complete payment' });
+      console.error("Pi API error:", errorText);
+      return res.status(500).json({ error: "Complete failed" });
     }
 
     const result = await response.json();
     res.json(result);
   } catch (error) {
-    console.error('Complete payment error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error("Error in complete-payment route:", error);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
