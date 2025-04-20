@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 
@@ -7,67 +8,81 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(cors());
 app.use(express.json());
 
-// Route test
-app.get("/", (req, res) => {
-  res.send("Pi Payment Backend is running");
+app.get('/', (req, res) => {
+  res.send('Pi Payment Backend is running');
 });
 
-// Route approve-payment
-app.post("/approve-payment", async (req, res) => {
+// Approve payment
+app.post('/approve-payment', async (req, res) => {
   const { paymentId } = req.body;
-  console.log("Approve request:", paymentId);
+  console.log("Approve-payment:", paymentId);
+
+  if (!paymentId) {
+    console.error("Missing paymentId");
+    return res.status(400).json({ error: "Missing paymentId" });
+  }
 
   try {
     const response = await fetch(`https://api.minepi.com/payments/${paymentId}/approve`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        Authorization: `Key ${process.env.PI_API_KEY}`,
-        "Content-Type": "application/json"
+        'Authorization': `Key ${process.env.PI_API_KEY}`,
+        'Content-Type': 'application/json'
       }
     });
 
     const result = await response.json();
+    console.log("Pi API approve response:", result);
+
     if (!response.ok) {
       console.error("Approve failed:", result);
       return res.status(500).json({ error: result });
     }
 
     res.json(result);
-  } catch (err) {
-    console.error("Approve error:", err);
-    res.status(500).json({ error: "Internal server error" });
+  } catch (error) {
+    console.error("Approve catch error:", error);
+    res.status(500).json({ error: "Server error (approve)" });
   }
 });
 
-// Route complete-payment
-app.post("/complete-payment", async (req, res) => {
+// Complete payment
+app.post('/complete-payment', async (req, res) => {
   const { paymentId } = req.body;
-  console.log("Complete request:", paymentId);
+  console.log("Complete-payment:", paymentId);
+
+  if (!paymentId) {
+    console.error("Missing paymentId");
+    return res.status(400).json({ error: "Missing paymentId" });
+  }
 
   try {
     const response = await fetch(`https://api.minepi.com/payments/${paymentId}/complete`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        Authorization: `Key ${process.env.PI_API_KEY}`,
-        "Content-Type": "application/json"
+        'Authorization': `Key ${process.env.PI_API_KEY}`,
+        'Content-Type': 'application/json'
       }
     });
 
     const result = await response.json();
+    console.log("Pi API complete response:", result);
+
     if (!response.ok) {
       console.error("Complete failed:", result);
       return res.status(500).json({ error: result });
     }
 
     res.json(result);
-  } catch (err) {
-    console.error("Complete error:", err);
-    res.status(500).json({ error: "Internal server error" });
+  } catch (error) {
+    console.error("Complete catch error:", error);
+    res.status(500).json({ error: "Server error (complete)" });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
