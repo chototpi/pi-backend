@@ -16,37 +16,36 @@ app.get('/', (req, res) => {
 });
 
 // Approve payment
-app.post('/approve-payment', async (req, res) => {
+app.post("/approve-payment", async (req, res) => {
   const { paymentId } = req.body;
-  console.log("Approve-payment:", paymentId);
+  console.log("Approve:", paymentId);
 
   if (!paymentId) {
-    console.error("Missing paymentId");
     return res.status(400).json({ error: "Missing paymentId" });
   }
 
   try {
     const response = await fetch(`https://api.minepi.com/payments/${paymentId}/approve`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Key ${process.env.PI_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Key ${process.env.PI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({})  // <-- Phải có body (kể cả rỗng)
     });
 
     const text = await response.text();
-    console.log("Raw response from Pi API:", text);
-    const result = await response.json();
-    console.log("Pi API approve response:", result);
+    console.log("Raw response:", text);
 
     if (!response.ok) {
-      console.error("Approve failed:", result);
-      return res.status(500).json({ error: result });
+      console.error("Approve failed:", text);
+      return res.status(500).json({ error: text });
     }
 
+    const result = JSON.parse(text);
     res.json(result);
-  } catch (error) {
-    console.error("Approve catch error:", error);
+  } catch (err) {
+    console.error("Approve catch error:", err);
     res.status(500).json({ error: "Server error (approve)" });
   }
 });
