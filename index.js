@@ -52,11 +52,11 @@ app.post("/approve-payment", async (req, res) => {
 
 // COMPLETE PAYMENT
 app.post("/complete-payment", async (req, res) => {
-  const { paymentId } = req.body;
-  console.log("Complete request for:", paymentId);
+  const { paymentId, txid } = req.body;
+  console.log("Complete request:", paymentId, txid);
 
-  if (!paymentId) {
-    return res.status(400).json({ error: "Missing paymentId" });
+  if (!paymentId || !txid) {
+    return res.status(400).json({ error: "Missing paymentId or txid" });
   }
 
   try {
@@ -66,7 +66,7 @@ app.post("/complete-payment", async (req, res) => {
         Authorization: `Key ${process.env.PI_API_KEY}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({})  // NEW body each time
+      body: JSON.stringify({ txid }) // <-- Thêm txid vào body
     });
 
     const text = await response.text();
