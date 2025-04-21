@@ -25,7 +25,7 @@ app.post("/approve-payment", async (req, res) => {
   }
 
   try {
-    const response = await fetch(`https://api.minepi.com/payments/${paymentId}/approve`, {
+    const response = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/approve`, {
       method: "POST",
       headers: {
         Authorization: `Key ${process.env.PI_API_KEY}`,
@@ -60,7 +60,7 @@ app.post("/complete-payment", async (req, res) => {
   }
 
   try {
-    const response = await fetch(`https://api.minepi.com/payments/${paymentId}/complete`, {
+    const response = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
       method: "POST",
       headers: {
         Authorization: `Key ${process.env.PI_API_KEY}`,
