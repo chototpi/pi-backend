@@ -88,3 +88,48 @@ app.post("/complete-payment", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+const express = require('express');
+const cors = require('cors');
+const mongoose = require('mongoose');
+require('dotenv').config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const uri = process.env.MONGODB_URI;
+mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log("✅ MongoDB connected"))
+    .catch(err => console.error("❌ MongoDB connection error:", err));
+
+const userSchema = new mongoose.Schema({
+    pi_username: String,
+    ho_va_ten: String,
+    phone: String,
+    dia_chi_nhan_hang: String,
+    email: String
+});
+
+const User = mongoose.model('User', userSchema);
+
+// API lưu thông tin người dùng
+app.post('/save-user-info', async (req, res) => {
+    const { pi_username, ho_va_ten, phone, dia_chi_nhan_hang, email } = req.body;
+
+    if (!pi_username) return res.status(400).json({ error: "Thiếu pi_username" });
+
+    try {
+        const updated = await User.findOneAndUpdate(
+            { pi_username },
+            { ho_va_ten, phone, dia_chi_nhan_hang, email },
+            { upsert: true, new: true }
+        );
+        res.json({ success: true, data: updated });
+    } catch (err) {
+        res.status(500).json({ error: "Lỗi lưu dữ liệu", details: err });
+    }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
