@@ -1,7 +1,9 @@
+
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
+import fetch from "node-fetch";
 
 dotenv.config();
 const app = express();
@@ -18,12 +20,12 @@ mongoose.connect(process.env.MONGODB_URI, {
 .then(() => console.log("✅ Đã kết nối MongoDB"))
 .catch((err) => console.error("❌ MongoDB lỗi:", err));
 
-// ----- Route đăng nhập Pi giữ nguyên phần bạn đang dùng -----
+// Route kiểm tra server
 app.get("/", (req, res) => {
   res.send("Chợ Tốt Pi Backend đang chạy...");
 });
 
-// ----- MARKET FUNCTIONALITY GỘP VÀO ĐÂY -----
+// ----- MODEL BÀI ĐĂNG -----
 const postSchema = new mongoose.Schema({
   username: String,
   title: String,
@@ -31,10 +33,9 @@ const postSchema = new mongoose.Schema({
   approved: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
-
 const Post = mongoose.model("Post", postSchema);
 
-// Gửi bài viết
+// ----- API ĐĂNG BÀI -----
 app.post("/market/submit", async (req, res) => {
   try {
     const { username, title, description } = req.body;
@@ -46,19 +47,16 @@ app.post("/market/submit", async (req, res) => {
   }
 });
 
-// Lấy danh sách bài đã duyệt
 app.get("/market/approved", async (req, res) => {
   const posts = await Post.find({ approved: true }).sort({ createdAt: -1 });
   res.json(posts);
 });
 
-// Lấy tất cả bài (cho admin)
 app.get("/market/all", async (req, res) => {
   const posts = await Post.find().sort({ createdAt: -1 });
   res.json(posts);
 });
 
-// Duyệt bài (admin)
 app.post("/market/approve/:id", async (req, res) => {
   try {
     await Post.findByIdAndUpdate(req.params.id, { approved: true });
@@ -68,7 +66,47 @@ app.post("/market/approve/:id", async (req, res) => {
   }
 });
 
-// ---------------------------------------------
+// ----- PI PAYMENT ROUTES -----
+const API_KEY = process.env.PI_API_KEY;
+
+app.post("/approve-payment", async (req, res) => {
+  const { paymentId } = req.body;
+  try {
+    const result = await fetch(`https://api.minepi.com/payments/${paymentId}/approve`, {
+      method: "POST",
+      headers: {
+        Authorization: `Key ${API_KEY}`,
+        "Content-Type": "application/json",
+      },
+    });
+    const json = await result.json();
+    res.json(json);
+  } catch (err) {
+    console.error("Approve catch error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/complete-payment", async (req, res) => {
+  const { paymentId, txid } = req.body;
+  try {
+    const result = await fetch(`https://api.minepi.com/payments/${paymentId}/complete`, {
+      method: "POST",
+      headers: {
+        Authorization: `Key ${API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ txid }),
+    });
+    const json = await result.json();
+    res.json(json);
+  } catch (err) {
+    console.error("Complete catch error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ---------------------------
 
 app.listen(PORT, () => {
   console.log(`✅ Server chạy tại http://localhost:${PORT}`);
