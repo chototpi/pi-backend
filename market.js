@@ -1,46 +1,60 @@
-// market.js
-const express = require('express');
-const mongoose = require('mongoose');
-const router = express.Router();
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
 
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const PORT = process.env.PORT || 3001;
+
+// Kết nối MongoDB
+mongoose.connect("mongodb+srv://binh06d1:YOUR_PASSWORD@thaibinhpi.fih0lks.mongodb.net/marketplace", {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+// Định nghĩa schema bài đăng
 const postSchema = new mongoose.Schema({
   username: String,
   title: String,
   description: String,
   price: Number,
-  status: { type: String, default: 'pending' },
-  createdAt: { type: Date, default: Date.now }
-});
-const Post = mongoose.model('Post', postSchema);
-
-// Tạo bài đăng
-router.post("/posts", async (req, res) => {
-  try {
-    const { username, title, description, price } = req.body;
-    const post = new Post({ username, title, description, price });
-    await post.save();
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  image: String,
+  approved: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now },
 });
 
-// Duyệt bài
-router.post("/posts/approve/:id", async (req, res) => {
-  await Post.findByIdAndUpdate(req.params.id, { status: 'approved' });
-  res.json({ success: true });
+const Post = mongoose.model("Post", postSchema);
+
+// API: Gửi bài đăng (user)
+app.post("/posts", async (req, res) => {
+  const { username, title, description, price, image } = req.body;
+  const post = new Post({ username, title, description, price, image });
+  await post.save();
+  res.json({ success: true, message: "Bài đăng đã được gửi, chờ duyệt." });
 });
 
-// Lấy bài chờ duyệt
-router.get("/posts/pending", async (req, res) => {
-  const posts = await Post.find({ status: 'pending' });
+// API: Lấy bài đã duyệt (trang chủ)
+app.get("/posts", async (req, res) => {
+  const posts = await Post.find({ approved: true }).sort({ createdAt: -1 });
   res.json(posts);
 });
 
-// Lấy bài đã duyệt
-router.get("/posts/approved", async (req, res) => {
-  const posts = await Post.find({ status: 'approved' });
+// API: Lấy tất cả bài (admin)
+app.get("/admin/posts", async (req, res) => {
+  const posts = await Post.find().sort({ createdAt: -1 });
   res.json(posts);
 });
 
-module.exports = router;
+// API: Duyệt bài đăng (admin)
+app.post("/admin/approve", async (req, res) => {
+  const { postId } = req.body;
+  await Post.findByIdAndUpdate(postId, { approved: true });
+  res.json({ success: true, message: "Bài đăng đã được duyệt." });
+});
+
+// Khởi động server
+app.listen(PORT, () => {
+  console.log(`Market server is running on port ${PORT}`);
+});
