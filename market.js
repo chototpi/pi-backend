@@ -1,60 +1,41 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
+import express from "express";
+import mongoose from "mongoose";
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+const router = express.Router();
 
-const PORT = process.env.PORT || 3001;
-
-// Kết nối MongoDB
-mongoose.connect("MONGODB_URI", {
+const uri = process.env.MONGO_URI;
+mongoose.connect(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
 
-// Định nghĩa schema bài đăng
 const postSchema = new mongoose.Schema({
   username: String,
   title: String,
   description: String,
-  price: Number,
-  image: String,
   approved: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now },
 });
 
 const Post = mongoose.model("Post", postSchema);
 
-// API: Gửi bài đăng (user)
-app.post("/posts", async (req, res) => {
-  const { username, title, description, price, image } = req.body;
-  const post = new Post({ username, title, description, price, image });
+// Gửi bài viết mới
+router.post("/submit", async (req, res) => {
+  const { username, title, description } = req.body;
+  const post = new Post({ username, title, description });
   await post.save();
-  res.json({ success: true, message: "Bài đăng đã được gửi, chờ duyệt." });
+  res.json({ message: "Đã gửi bài chờ duyệt." });
 });
 
-// API: Lấy bài đã duyệt (trang chủ)
-app.get("/posts", async (req, res) => {
-  const posts = await Post.find({ approved: true }).sort({ createdAt: -1 });
+// Admin duyệt bài
+router.post("/approve/:id", async (req, res) => {
+  await Post.findByIdAndUpdate(req.params.id, { approved: true });
+  res.json({ message: "Đã duyệt bài." });
+});
+
+// Lấy danh sách bài đã duyệt
+router.get("/approved", async (req, res) => {
+  const posts = await Post.find({ approved: true });
   res.json(posts);
 });
 
-// API: Lấy tất cả bài (admin)
-app.get("/admin/posts", async (req, res) => {
-  const posts = await Post.find().sort({ createdAt: -1 });
-  res.json(posts);
-});
-
-// API: Duyệt bài đăng (admin)
-app.post("/admin/approve", async (req, res) => {
-  const { postId } = req.body;
-  await Post.findByIdAndUpdate(postId, { approved: true });
-  res.json({ success: true, message: "Bài đăng đã được duyệt." });
-});
-
-// Khởi động server
-app.listen(PORT, () => {
-  console.log(`Market server is running on port ${PORT}`);
-});
+export default router;
