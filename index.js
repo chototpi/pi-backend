@@ -3,22 +3,35 @@ import cors from "cors";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
 import marketRouter from "./market.js";
+import mongoose from "mongoose";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
 
 app.use(cors());
 app.use(express.json());
 
+// Kết nối MongoDB
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log("✅ Kết nối MongoDB thành công"))
+.catch((err) => console.error("❌ MongoDB lỗi:", err));
+
+
 app.get("/", (req, res) => {
   res.send("Pi Payment Backend is running");
 });
+
+app.listen(PORT, () => {
+  console.log(`✅ Server đang chạy tại cổng ${PORT}`);
+});
+
 app.use("/market", marketRouter);
+
 // APPROVE PAYMENT
 app.post("/approve-payment", async (req, res) => {
   const { paymentId } = req.body;
