@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
-import marketRouter from ".market.js";
+import marketRouter from "./market.js";
 
 dotenv.config();
 
