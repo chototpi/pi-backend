@@ -9,7 +9,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 3001;
 
 // Kết nối MongoDB
-mongoose.connect("mongodb+srv://binh06d1:YOUR_PASSWORD@thaibinhpi.fih0lks.mongodb.net/marketplace", {
+mongoose.connect("mongodb+srv://binh06d1:@thaibinh85DN@thaibinhpi.fih0lks.mongodb.net/?retryWrites=true&w=majority&appName=thaibinhpi", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
