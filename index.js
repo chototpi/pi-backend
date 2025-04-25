@@ -43,7 +43,7 @@ const Post = mongoose.model("Post", postSchema);
 app.post("/market/submit", async (req, res) => {
   try {
     const { username, title, description } = req.body;
-    const post = new Post({ username, title, description });
+    const post = new Post({ username, title, menu, description, price, contract, adress, files });
     await post.save();
     res.json({ success: true, message: "Đã gửi bài, chờ admin duyệt." });
   } catch (err) {
