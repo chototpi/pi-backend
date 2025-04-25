@@ -1,4 +1,3 @@
-
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -12,12 +11,17 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Kết nối MongoDB
+// Kết nối MongoDB và chọn database 'chototpi'
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => console.log("✅ Đã kết nối MongoDB"))
+.then(() => {
+  console.log("✅ Đã kết nối MongoDB");
+
+  // Chọn đúng database 'chototpi' để thao tác
+  const db = mongoose.connection.useDb("chototpi");
+})
 .catch((err) => console.error("❌ MongoDB lỗi:", err));
 
 // Route kiểm tra server
