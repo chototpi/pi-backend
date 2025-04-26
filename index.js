@@ -64,18 +64,23 @@ app.get("/admin/posts", async (req, res) => {
 });
 
 // ----- Duyệt bài theo ID (admin) -----
-app.post("/admin/approve", async (req, res) => {
-  const { postId } = req.body;
-  if (!postId) return res.status(400).json({ error: "Thiếu postId" });
-
+app.post("/approve/:id", async (req, res) => {
   try {
-    const result = await Post.updateOne(
-      { _id: new ObjectId(postId) },
+    const id = req.params.id;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID không hợp lệ" });
+    }
+
+    await postsCollection.updateOne(
+      { _id: new ObjectId(id) },
       { $set: { approved: true } }
     );
-    res.json({ success: result.modifiedCount === 1 });
+
+    res.json({ message: "Duyệt bài thành công" });
   } catch (err) {
-    res.status(500).json({ error: "Lỗi duyệt bài" });
+    console.error("Approve Post Error:", err);
+    res.status(500).json({ message: "Lỗi server" });
   }
 });
 
