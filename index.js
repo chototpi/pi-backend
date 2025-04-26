@@ -89,6 +89,17 @@ app.get("/posts", async (req, res) => {
   }
 });
 
+// Từ chối bài (xoá bài chưa duyệt)
+app.delete("/reject-post/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    await Post.deleteOne({ _id: new ObjectId(id) });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Lỗi từ chối bài" });
+  }
+});
+
 // APPROVE PAYMENT
 app.post("/approve-payment", async (req, res) => {
   const { paymentId } = req.body;
