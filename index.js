@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
-import { ObjectId } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 
 dotenv.config();
 const app = express();
@@ -122,6 +122,7 @@ app.get("/post/:id", async (req, res) => {
     res.status(500).json({ message: "Lỗi server" });
   }
 });
+
 // APPROVE PAYMENT
 app.post("/approve-payment", async (req, res) => {
   const { paymentId } = req.body;
