@@ -101,21 +101,27 @@ app.delete("/reject-post/:id", async (req, res) => {
 });
 
 // Lấy bài đăng chi tiết
-app.get('/post/:id', async (req, res) => {
+app.get("/post/:id", async (req, res) => {
   try {
-    const { id } = req.params;
-    const post = await postsCollection.findOne({ _id: new ObjectId(id) });
-    if (post && post.approved) {
-      res.json(post);
-    } else {
-      res.status(404).json({ message: "Bài đăng không tồn tại hoặc chưa duyệt." });
+    const id = req.params.id;
+
+    // Kiểm tra id có đúng chuẩn ObjectId không
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID không hợp lệ" });
     }
+
+    const post = await postsCollection.findOne({ _id: new ObjectId(id) });
+
+    if (!post) {
+      return res.status(404).json({ message: "Không tìm thấy bài đăng" });
+    }
+
+    res.json(post);
   } catch (error) {
-    console.error('Lỗi lấy bài:', error);
+    console.error("Lỗi server khi lấy bài viết:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
-
 // APPROVE PAYMENT
 app.post("/approve-payment", async (req, res) => {
   const { paymentId } = req.body;
