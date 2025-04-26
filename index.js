@@ -12,39 +12,40 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Kết nối MongoDB và chọn database 'chototpi'
+// Kết nối MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => {
-  console.log("✅ Đã kết nối MongoDB");
+.then(() => console.log("✅ Đã kết nối MongoDB"))
+.catch(err => console.error("❌ MongoDB lỗi:", err));
 
-  // Chọn đúng database 'chototpi' để thao tác
-  const db = mongoose.connection.useDb("chototpi");
-})
-.catch((err) => console.error("❌ MongoDB lỗi:", err));
+const db = mongoose.connection.useDb("chototpi");
 
-// Route kiểm tra server
-app.get("/", (req, res) => {
-  res.send("Chợ Tốt Pi Backend đang chạy...");
-});
-
-// ----- MODEL BÀI ĐĂNG -----
+// ----- Định nghĩa Schema -----
 const postSchema = new mongoose.Schema({
   username: String,
   title: String,
   description: String,
+  price: String,
+  contact: String,
+  images: [String],
   approved: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
-const Post = mongoose.model("Post", postSchema);
 
-// ----- API ĐĂNG BÀI -----
-app.post("/market/submit", async (req, res) => {
+const Post = db.model("Post", postSchema);
+
+// ----- Trang chủ -----
+app.get("/", (req, res) => {
+  res.send("Pi Marketplace backend đang chạy...");
+});
+
+// ----- Gửi bài mới -----
+app.post("/submit-post", async (req, res) => {
   try {
-    const { username, title, description } = req.body;
-    const post = new Post({ username, title, menu, description, price, contract, adress, files });
+    const { username, title, description, price, contact, images } = req.body;
+    const post = new Post({ username, title, description, price, contact, images });
     await post.save();
     res.json({ success: true, message: "Đã gửi bài, chờ admin duyệt." });
   } catch (err) {
@@ -52,63 +53,41 @@ app.post("/market/submit", async (req, res) => {
   }
 });
 
-app.get("/market/approved", async (req, res) => {
-  const posts = await Post.find({ approved: true }).sort({ createdAt: -1 });
-  res.json(posts);
-});
-
-app.get("/market/all", async (req, res) => {
-  const posts = await Post.find().sort({ createdAt: -1 });
-  res.json(posts);
-});
-
-app.post("/market/approve/:id", async (req, res) => {
+// ----- Lấy bài chưa duyệt (admin) -----
+app.get("/admin/posts", async (req, res) => {
   try {
-    await Post.findByIdAndUpdate(req.params.id, { approved: true });
-    res.json({ success: true, message: "Bài đã được duyệt." });
+    const posts = await Post.find({ approved: false }).sort({ createdAt: -1 });
+    res.json(posts);
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ error: "Lỗi truy vấn bài chưa duyệt" });
   }
 });
 
-// CẬP NHẬT CSDL MONGODB
-await collection.insertOne({
-  username,
-  title,
-  description,
-  price,
-  contact,
-  images: base64Images,
-  approved: false, // Mặc định chưa duyệt
-  createdAt: new Date()
-});
-
-// TẠO ROUTER CHO ADMIN DUYỆT BÀI
-app.get("/admin/posts", async (req, res) => {
-  const collection = db.collection("posts");
-  const unapprovedPosts = await collection.find({ approved: false }).toArray();
-  res.json(unapprovedPosts);
-});
-
-// TẠO ROUTER ĐỂ DUYỆT BÀI
+// ----- Duyệt bài theo ID (admin) -----
 app.post("/admin/approve", async (req, res) => {
   const { postId } = req.body;
-  const result = await db.collection("posts").updateOne(
-    { _id: new ObjectId(postId) },
-    { $set: { approved: true } }
-  );
-  res.json({ success: result.modifiedCount === 1 });
+  if (!postId) return res.status(400).json({ error: "Thiếu postId" });
+
+  try {
+    const result = await Post.updateOne(
+      { _id: new ObjectId(postId) },
+      { $set: { approved: true } }
+    );
+    res.json({ success: result.modifiedCount === 1 });
+  } catch (err) {
+    res.status(500).json({ error: "Lỗi duyệt bài" });
+  }
 });
 
-// HIỂN THỊ BÀI DUYỆT VỀ TRANG CHỦ
+// ----- Lấy bài đã duyệt (trang chủ) -----
 app.get("/posts", async (req, res) => {
-  const posts = await db.collection("posts")
-    .find({ approved: true })
-    .sort({ createdAt: -1 })
-    .toArray();
-  res.json(posts);
+  try {
+    const posts = await Post.find({ approved: true }).sort({ createdAt: -1 });
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ error: "Lỗi truy vấn bài đã duyệt" });
+  }
 });
-
 // APPROVE PAYMENT
 app.post("/approve-payment", async (req, res) => {
   const { paymentId } = req.body;
