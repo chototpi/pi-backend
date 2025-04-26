@@ -22,7 +22,6 @@ mongoose.connect(process.env.MONGODB_URI, {
 
 const db = mongoose.connection.useDb("chototpi");
 
-// ----- Định nghĩa Schema -----
 const postSchema = new mongoose.Schema({
   username: String,
   title: String,
@@ -36,12 +35,12 @@ const postSchema = new mongoose.Schema({
 
 const Post = db.model("Post", postSchema);
 
-// ----- Trang chủ -----
+// Trang chủ
 app.get("/", (req, res) => {
   res.send("Pi Marketplace backend đang chạy...");
 });
 
-// ----- Gửi bài mới -----
+// Gửi bài mới
 app.post("/submit-post", async (req, res) => {
   try {
     const { username, title, description, price, contact, images } = req.body;
@@ -53,7 +52,7 @@ app.post("/submit-post", async (req, res) => {
   }
 });
 
-// ----- Lấy bài chưa duyệt (admin) -----
+// Lấy bài chưa duyệt (admin)
 app.get("/admin/posts", async (req, res) => {
   try {
     const posts = await Post.find({ approved: false }).sort({ createdAt: -1 });
@@ -63,23 +62,40 @@ app.get("/admin/posts", async (req, res) => {
   }
 });
 
-// ----- Duyệt bài theo ID (admin) -----
-app.post("/admin/approve", async (req, res) => {
-  const { postId } = req.body;
-  if (!postId) return res.status(400).json({ error: "Thiếu postId" });
-
+// Duyệt bài
+app.put("/approve-post/:id", async (req, res) => {
   try {
-    const result = await Post.updateOne(
-      { _id: new ObjectId(postId) },
-      { $set: { approved: true } }
-    );
-    res.json({ success: result.modifiedCount === 1 });
+    const id = req.params.id;
+    await Post.updateOne({ _id: new ObjectId(id) }, { $set: { approved: true } });
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Lỗi duyệt bài" });
   }
 });
 
-// ----- Lấy bài đã duyệt (trang chủ) -----
+// Từ chối bài (xoá bài chưa duyệt)
+app.delete("/reject-post/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    await Post.deleteOne({ _id: new ObjectId(id) });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Lỗi từ chối bài" });
+  }
+});
+
+// Xoá bài đã duyệt
+app.delete("/delete-post/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    await Post.deleteOne({ _id: new ObjectId(id) });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Lỗi xoá bài" });
+  }
+});
+
+// Lấy bài đã duyệt để hiển thị
 app.get("/posts", async (req, res) => {
   try {
     const posts = await Post.find({ approved: true }).sort({ createdAt: -1 });
@@ -88,6 +104,11 @@ app.get("/posts", async (req, res) => {
     res.status(500).json({ error: "Lỗi truy vấn bài đã duyệt" });
   }
 });
+
+app.listen(PORT, () => {
+  console.log(`Server đang chạy tại cổng ${PORT}`);
+});
+
 // APPROVE PAYMENT
 app.post("/approve-payment", async (req, res) => {
   const { paymentId } = req.body;
