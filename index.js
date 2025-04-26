@@ -70,6 +70,44 @@ app.post("/market/approve/:id", async (req, res) => {
   }
 });
 
+// CẬP NHẬT CSDL MONGODB
+await collection.insertOne({
+  username,
+  title,
+  description,
+  price,
+  contact,
+  images: base64Images,
+  approved: false, // Mặc định chưa duyệt
+  createdAt: new Date()
+});
+
+// TẠO ROUTER CHO ADMIN DUYỆT BÀI
+app.get("/admin/posts", async (req, res) => {
+  const collection = db.collection("posts");
+  const unapprovedPosts = await collection.find({ approved: false }).toArray();
+  res.json(unapprovedPosts);
+});
+
+// TẠO ROUTER ĐỂ DUYỆT BÀI
+app.post("/admin/approve", async (req, res) => {
+  const { postId } = req.body;
+  const result = await db.collection("posts").updateOne(
+    { _id: new ObjectId(postId) },
+    { $set: { approved: true } }
+  );
+  res.json({ success: result.modifiedCount === 1 });
+});
+
+// HIỂN THỊ BÀI DUYỆT VỀ TRANG CHỦ
+app.get("/posts", async (req, res) => {
+  const posts = await db.collection("posts")
+    .find({ approved: true })
+    .sort({ createdAt: -1 })
+    .toArray();
+  res.json(posts);
+});
+
 // APPROVE PAYMENT
 app.post("/approve-payment", async (req, res) => {
   const { paymentId } = req.body;
