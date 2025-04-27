@@ -69,19 +69,17 @@ app.get("/admin/posts", async (req, res) => {
 
 // ----- Duyệt bài theo ID (admin) -----
 app.post("/admin/approve", async (req, res) => {
+  const { postId } = req.body;
+  if (!postId) return res.status(400).json({ error: "Thiếu postId" });
+
   try {
-    const { id } = req.body;
-    await client.connect();
-    const db = client.db("chototpi");
-    const posts = db.collection("posts");
-
-    // Cập nhật trạng thái bài đăng thành "approved"
-    await posts.updateOne({ _id: new ObjectId(id) }, { $set: { approved: true } });
-
-    res.json({ message: "Đã duyệt bài thành công" });
+    const result = await Post.updateOne(
+      { _id: new ObjectId(postId) },
+      { $set: { approved: true } }
+    );
+    res.json({ success: result.modifiedCount === 1 });
   } catch (err) {
-    console.error("Lỗi duyệt bài:", err);
-    res.status(500).json({ message: "Lỗi server" });
+    res.status(500).json({ error: "Lỗi duyệt bài" });
   }
 });
 
