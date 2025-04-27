@@ -13,16 +13,19 @@ app.use(cors({
   origin: "https://chototpi.site"
 }));
 app.use(express.json());
-const client = new MongoClient(process.env.MONGODB_URI, {});
-// Kết nối MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log("✅ Đã kết nối MongoDB"))
-.catch(err => console.error("❌ MongoDB lỗi:", err));
 
-const db = mongoose.connection.useDb("chototpi");
+let postsCollection;
+
+// Kết nối MongoDB
+async function connectDB() {
+  const client = new MongoClient(process.env.MONGODB_URI);
+  await client.connect();
+  const db = client.db('chototpi'); // Thay 'your_database_name' bằng tên database thực tế
+  postsCollection = db.collection('posts');
+  console.log('Connected to MongoDB');
+}
+
+connectDB().catch(err => console.error('MongoDB connection error:', err));
 
 // ----- Định nghĩa Schema -----
 const postSchema = new mongoose.Schema({
@@ -105,10 +108,7 @@ app.delete("/reject-post/:id", async (req, res) => {
 // Lấy bài đăng chi tiết
 app.get('/posts/:id', async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: 'Invalid post ID' });
-    }
-    const post = await Post.findById(req.params.id); // Sử dụng Post thay vì postsCollection
+    const post = await postsCollection.findOne({ _id: new ObjectId(req.params.id) });
     if (!post) return res.status(404).json({ message: 'Post not found' });
     res.json(post);
   } catch (error) {
