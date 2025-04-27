@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
-import { MongoClient, ObjectId } from "mongodb";
+// Xóa import ObjectId vì không cần thiết nếu dùng Mongoose cho route /post/:id
+// import { MongoClient, ObjectId } from "mongodb"; // Comment hoặc xóa dòng này
 
 dotenv.config();
 const app = express();
@@ -13,19 +14,17 @@ app.use(cors({
   origin: "https://chototpi.site"
 }));
 app.use(express.json());
+// Xóa client vì không sử dụng MongoDB native driver trong route /post/:id
+// const client = new MongoClient(process.env.MONGODB_URI, {});
 
-let postsCollection;
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log("✅ Đã kết nối MongoDB"))
+.catch(err => console.error("❌ MongoDB lỗi:", err));
 
-// Kết nối MongoDB
-async function connectDB() {
-  const client = new MongoClient(process.env.MONGODB_URI);
-  await client.connect();
-  const db = client.db('chototpi'); // Thay 'your_database_name' bằng tên database thực tế
-  postsCollection = db.collection('posts');
-  console.log('Connected to MongoDB');
-}
-
-connectDB().catch(err => console.error('MongoDB connection error:', err));
+const db = mongoose.connection.useDb("chototpi");
 
 // ----- Định nghĩa Schema -----
 const postSchema = new mongoose.Schema({
@@ -39,7 +38,7 @@ const postSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model("Post", postSchema);
+const Post = db.model("Post", postSchema);
 
 // ----- Trang chủ -----
 app.get("/", (req, res) => {
@@ -70,17 +69,19 @@ app.get("/admin/posts", async (req, res) => {
 
 // ----- Duyệt bài theo ID (admin) -----
 app.post("/admin/approve", async (req, res) => {
-  const { postId } = req.body;
-  if (!postId) return res.status(400).json({ error: "Thiếu postId" });
-
   try {
-    const result = await Post.updateOne(
-      { _id: new ObjectId(postId) },
-      { $set: { approved: true } }
-    );
-    res.json({ success: result.modifiedCount === 1 });
+    const { id } = req.body;
+    await client.connect();
+    const db = client.db("chototpi");
+    const posts = db.collection("posts");
+
+    // Cập nhật trạng thái bài đăng thành "approved"
+    await posts.updateOne({ _id: new ObjectId(id) }, { $set: { approved: true } });
+
+    res.json({ message: "Đã duyệt bài thành công" });
   } catch (err) {
-    res.status(500).json({ error: "Lỗi duyệt bài" });
+    console.error("Lỗi duyệt bài:", err);
+    res.status(500).json({ message: "Lỗi server" });
   }
 });
 
@@ -106,15 +107,28 @@ app.delete("/reject-post/:id", async (req, res) => {
 });
 
 // Lấy bài đăng chi tiết
-app.get('/posts/:id', async (req, res) => {
+app.get("/post/:id", async (req, res) => {
   try {
-    const post = await postsCollection.findOne({ _id: new ObjectId(req.params.id) });
-    if (!post) return res.status(404).json({ message: 'Post not found' });
+    const id = req.params.id;
+
+    // Kiểm tra id có đúng chuẩn ObjectId không
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID không hợp lệ" });
+    }
+
+    const post = await Post.findById(id); // Sử dụng Post.findById
+
+    if (!post) {
+      return res.status(404).json({ message: "Không tìm thấy bài đăng" });
+    }
+
     res.json(post);
   } catch (error) {
-    res.status(500).json({ message: `Lỗi server khi lấy bài viết: ${error.message}` });
+    console.error("Lỗi server khi lấy bài viết:", error);
+    res.status(500).json({ message: "Lỗi server" });
   }
 });
+
 
 // APPROVE PAYMENT
 app.post("/approve-payment", async (req, res) => {
