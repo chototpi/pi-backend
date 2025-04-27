@@ -15,7 +15,7 @@ app.use(cors({
 }));
 app.use(express.json());
 // Xóa client vì không sử dụng MongoDB native driver trong route /post/:id
-// const client = new MongoClient(process.env.MONGODB_URI, {});
+const client = new MongoClient(process.env.MONGODB_URI, {});
 
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
