@@ -4,7 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
 // Xóa import ObjectId vì không cần thiết nếu dùng Mongoose cho route /post/:id
-// import { MongoClient, ObjectId } from "mongodb"; // Comment hoặc xóa dòng này
+import { MongoClient, ObjectId } from "mongodb"; // Comment hoặc xóa dòng này
 
 dotenv.config();
 const app = express();
