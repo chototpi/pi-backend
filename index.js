@@ -36,7 +36,7 @@ const postSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongose.model("Post", postSchema);
+const Post = db.model("Post", postSchema);
 
 // ----- Trang chủ -----
 app.get("/", (req, res) => {
