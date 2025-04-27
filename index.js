@@ -137,19 +137,20 @@ app.get("/post/:id", async (req, res) => {
 
 // Route thêm bình luận
 app.post('/post/:id/comment', async (req, res) => {
-  const postId = req.params.id;
-  const { content } = req.body;
-
-  if (!content) {
-    return res.status(400).json({ message: 'Nội dung bình luận trống' });
-  }
-
   try {
-    const db = client.db();
-    const posts = db.collection('posts');
+    const postId = req.params.id;
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ message: 'Nội dung bình luận trống' });
+    }
+
+    await client.connect(); // <<< Kết nối lại client nếu cần
+    const db = client.db("chototpi"); // <<< Tên database
+    const posts = db.collection("posts");
 
     const comment = {
-      username: "", // Nếu sau này có tài khoản thì sẽ lấy username
+      username: "", // Có thể lấy username sau
       content,
       createdAt: new Date()
     };
