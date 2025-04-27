@@ -5,24 +5,15 @@ import dotenv from "dotenv";
 import fetch from "node-fetch";
 import { MongoClient, ObjectId } from "mongodb";
 
-dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 10000;
+dotenv.config();
 
-app.use(cors({
-  origin: "https://chototpi.site"
-}));
-app.use(express.json());
-const client = new MongoClient(process.env.MONGODB_URI, {});
-// Kết nối MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log("✅ Đã kết nối MongoDB"))
-.catch(err => console.error("❌ MongoDB lỗi:", err));
+const mongoURI = process.env.MONGODB_URI;
+const client = new MongoClient(mongoURI);
 
-const db = mongoose.connection.useDb("chototpi");
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
 
 // ----- Định nghĩa Schema -----
 const postSchema = new mongoose.Schema({
