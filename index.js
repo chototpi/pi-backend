@@ -30,9 +30,11 @@ const db = mongoose.connection.useDb("chototpi");
 const postSchema = new mongoose.Schema({
   username: String,
   title: String,
+  menu: Sting,
   description: String,
   price: String,
   contact: String,
+  adress: String,
   images: [String],
   approved: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
@@ -48,8 +50,8 @@ app.get("/", (req, res) => {
 // ----- Gửi bài mới -----
 app.post("/submit-post", async (req, res) => {
   try {
-    const { username, title, description, price, contact, images } = req.body;
-    const post = new Post({ username, title, description, price, contact, images });
+    const { username, title, menu, description, price, contact, adress, images } = req.body;
+    const post = new Post({ username, title, menu, description, price, contact, adress, images });
     await post.save();
     res.json({ success: true, message: "Đã gửi bài, chờ admin duyệt." });
   } catch (err) {
