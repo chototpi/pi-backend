@@ -112,6 +112,23 @@ app.delete("/reject-post/:id", async (req, res) => {
   }
 });
 
+//Xóa Bài đã duyệt
+app.post("/admin/delete", async (req, res) => {
+  try {
+    const { id } = req.body;
+    await client.connect();
+    const db = client.db("chototpi");
+    const posts = db.collection("posts");
+
+    await posts.deleteOne({ _id: new ObjectId(id) });
+
+    res.json({ message: "Đã xóa bài thành công" });
+  } catch (err) {
+    console.error("Lỗi xóa bài:", err);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+
 // Lấy bài đăng chi tiết
 app.get("/post/:id", async (req, res) => {
   try {
