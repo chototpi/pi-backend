@@ -139,7 +139,7 @@ app.get("/post/:id", async (req, res) => {
 app.post('/post/:id/comment', async (req, res) => {
   try {
     const postId = req.params.id;
-    const { content } = req.body;
+    const { usename, content } = req.body;
 
     if (!content) {
       return res.status(400).json({ message: 'Nội dung bình luận trống' });
