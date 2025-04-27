@@ -36,7 +36,7 @@ const postSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-const Post = db.model("Post", postSchema);
+module.exports = mongose.model("Post", postSchema);
 
 // ----- Trang chủ -----
 app.get("/", (req, res) => {
@@ -103,25 +103,16 @@ app.delete("/reject-post/:id", async (req, res) => {
 });
 
 // Lấy bài đăng chi tiết
-app.get("/post/:id", async (req, res) => {
+app.get('/posts/:id', async (req, res) => {
   try {
-    const id = req.params.id;
-
-    // Kiểm tra id có đúng chuẩn ObjectId không
-    if (!ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "ID không hợp lệ" });
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid post ID' });
     }
-
-    const post = await postsCollection.findOne({ _id: new ObjectId(id) });
-
-    if (!post) {
-      return res.status(404).json({ message: "Không tìm thấy bài đăng" });
-    }
-
+    const post = await Post.findById(req.params.id); // Sử dụng Post thay vì postsCollection
+    if (!post) return res.status(404).json({ message: 'Post not found' });
     res.json(post);
   } catch (error) {
-    console.error("Lỗi server khi lấy bài viết:", error);
-    res.status(500).json({ message: "Lỗi server" });
+    res.status(500).json({ message: `Lỗi server khi lấy bài viết: ${error.message}` });
   }
 });
 
