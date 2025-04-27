@@ -139,18 +139,18 @@ app.get("/post/:id", async (req, res) => {
 app.post('/post/:id/comment', async (req, res) => {
   try {
     const postId = req.params.id;
-    const { usename, content } = req.body;
+    const { username, content } = req.body;
 
-    if (!content) {
-      return res.status(400).json({ message: 'Nội dung bình luận trống' });
+    if (!username || !content) {
+      return res.status(400).json({ message: 'Thiếu username hoặc nội dung.' });
     }
 
-    await client.connect(); // <<< Kết nối lại client nếu cần
-    const db = client.db("chototpi"); // <<< Tên database
+    await client.connect();
+    const db = client.db("chototpi");
     const posts = db.collection("posts");
 
     const comment = {
-      username: "", // Có thể lấy username sau
+      username,
       content,
       createdAt: new Date()
     };
