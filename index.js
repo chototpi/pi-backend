@@ -71,12 +71,18 @@ app.get("/admin/posts", async (req, res) => {
 app.post("/admin/approve", async (req, res) => {
   try {
     const { id } = req.body;
-    await client.connect();
-    const db = client.db("chototpi");
-    const posts = db.collection("posts");
 
-    // Cập nhật trạng thái bài đăng thành "approved"
-    await posts.updateOne({ _id: new ObjectId(id) }, { $set: { approved: true } });
+    // Kiểm tra id có hợp lệ không
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID không hợp lệ" });
+    }
+
+    // Cập nhật trạng thái bài đăng thành "approved" bằng Mongoose
+    const result = await Post.updateOne({ _id: new mongoose.Types.ObjectId(id) }, { $set: { approved: true } });
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Không tìm thấy bài đăng để duyệt" });
+    }
 
     res.json({ message: "Đã duyệt bài thành công" });
   } catch (err) {
