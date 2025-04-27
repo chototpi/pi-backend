@@ -135,6 +135,36 @@ app.get("/post/:id", async (req, res) => {
   }
 });
 
+// Route thêm bình luận
+app.post('/post/:id/comment', async (req, res) => {
+  const postId = req.params.id;
+  const { content } = req.body;
+
+  if (!content) {
+    return res.status(400).json({ message: 'Nội dung bình luận trống' });
+  }
+
+  try {
+    const db = client.db();
+    const posts = db.collection('posts');
+
+    const comment = {
+      username: "", // Nếu sau này có tài khoản thì sẽ lấy username
+      content,
+      createdAt: new Date()
+    };
+
+    await posts.updateOne(
+      { _id: new ObjectId(postId) },
+      { $push: { comments: comment } }
+    );
+
+    res.json({ message: 'Đã thêm bình luận' });
+  } catch (error) {
+    console.error('Lỗi thêm bình luận:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
 
 // APPROVE PAYMENT
 app.post("/approve-payment", async (req, res) => {
