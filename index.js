@@ -9,9 +9,11 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(cors({
+  origin: "https://chototpi.site"
+}));
 app.use(express.json());
-
+const client = new MongoClient(process.env.MONGODB_URI, {});
 // Kết nối MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
