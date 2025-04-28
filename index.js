@@ -30,7 +30,7 @@ const db = mongoose.connection.useDb("chototpi");
 const postSchema = new mongoose.Schema({
   username: String,
   title: String,
-  menu: Sting,
+  menu: String,
   description: String,
   price: String,
   contact: String,
