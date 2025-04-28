@@ -73,7 +73,7 @@ app.post('/submit-post', async (req, res) => {
     res.json({ message: 'Đăng bài thành công!' });
 
   } catch (err) {
-    console.error('Lỗi đăng bài:', err);
+    console.error('Lỗi đăng bải: ảnh quá nặng:', err);
     res.status(500).json({ message: 'Lỗi server' });
   }
 });
