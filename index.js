@@ -50,28 +50,30 @@ app.get("/", (req, res) => {
 // ----- Gửi bài mới -----
 app.post('/submit-post', async (req, res) => {
   try {
-    const { title, price, description, contact, images, username, menu, adress } = req.body;
-    await client.connect();
-    const db = client.db("chototpi");
-    const posts = db.collection("posts");
+    const { title, description, price, contact, images, username, menu, adress } = req.body;
 
-    const newPost = {
+    if (!title || !description || !price || !contact || !images || !username || !menu || !adress) {
+      return res.status(400).json({ message: 'Thiếu dữ liệu bắt buộc.' });
+    }
+
+    const post = {
       title,
-      price,
       description,
+      price,
       contact,
       images,
-      username,
-      menu,
+      username,  // Lưu username
+      menu,       // Nếu có thêm menu, adress thì lưu luôn
       adress,
-      approved: false, // <- Luôn thêm dòng này ở backend
+      approved: false, // Mặc định bài mới đăng là chưa duyệt
       createdAt: new Date()
     };
 
-    const result = await posts.insertOne(newPost);
-    res.json({ message: 'Đăng bài thành công', postId: result.insertedId });
-  } catch (error) {
-    console.error('Lỗi submit bài:', error);
+    await db.collection('posts').insertOne(post);
+    res.json({ message: 'Đăng bài thành công!' });
+
+  } catch (err) {
+    console.error('Lỗi đăng bài:', err);
     res.status(500).json({ message: 'Lỗi server' });
   }
 });
