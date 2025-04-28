@@ -77,12 +77,13 @@ app.post('/submit-post', async (req, res) => {
 });
 
 // ----- Lấy bài chưa duyệt (admin) -----
-app.get("/admin/posts", async (req, res) => {
+app.get('/admin/waiting', async (req, res) => {
   try {
-    const posts = await Post.find({ approved: false }).sort({ createdAt: -1 });
+    const posts = await db.collection('posts').find({ approved: false }).toArray();
     res.json(posts);
-  } catch (err) {
-    res.status(500).json({ error: "Lỗi truy vấn bài chưa duyệt" });
+  } catch (error) {
+    console.error('Lỗi tải bài chờ duyệt:', error);
+    res.status(500).json({ message: 'Lỗi server' });
   }
 });
 
@@ -120,12 +121,13 @@ app.post('/admin/approve', async (req, res) => {
 });
 
 // ----- Lấy bài đã duyệt (trang chủ) -----
-app.get("/posts", async (req, res) => {
+app.get('/admin/approved', async (req, res) => {
   try {
-    const posts = await Post.find({ approved: true }).sort({ createdAt: -1 });
+    const posts = await db.collection('posts').find({ approved: true }).toArray();
     res.json(posts);
-  } catch (err) {
-    res.status(500).json({ error: "Lỗi truy vấn bài đã duyệt" });
+  } catch (error) {
+    console.error('Lỗi tải bài đã duyệt:', error);
+    res.status(500).json({ message: 'Lỗi server' });
   }
 });
 
