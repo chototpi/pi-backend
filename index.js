@@ -87,10 +87,19 @@ app.get("/admin/posts", async (req, res) => {
 });
 
 // ----- Duyệt bài theo ID (admin) -----
-app.post("/admin/approve", async (req, res) => {
+app.post('/admin/approve', async (req, res) => {
   try {
-    const { id } = req.body;
+    const { id, title, price, description, contact } = req.body;
 
+    await client.connect();
+    const db = client.db("chototpi");
+    const posts = db.collection("posts");
+
+    await posts.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { approved: true, title, price, description, contact } }
+    );
+    
     // Kiểm tra id có hợp lệ không
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "ID không hợp lệ" });
