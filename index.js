@@ -120,7 +120,17 @@ app.post('/admin/approve', async (req, res) => {
   }
 });
 
-// ----- Lấy bài đã duyệt (trang chủ) -----
+//Lấy bài đã duyệt hiển thị trang chủ
+app.get("/posts", async (req, res) => {
+  try {
+    const posts = await Post.find({ approved: true }).sort({ createdAt: -1 });
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ error: "Lỗi truy vấn bài đã duyệt" });
+  }
+});
+
+// ----- Lấy bài đã duyệt về trang quản lý -----
 app.get('/admin/approved', async (req, res) => {
   try {
     const posts = await db.collection('posts').find({ approved: true }).toArray();
