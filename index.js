@@ -50,7 +50,8 @@ app.get("/", (req, res) => {
 // ----- Gửi bài mới -----
 app.post('/submit-post', async (req, res) => {
   try {
-    const { title, description, price, contact, images, username, menu, adress } = req.body;
+    const { title, description, price, contact, images, menu, adress } = req.body;
+    const username = String(req.body.username || "").trim(); // Ép kiểu String + trim luôn
 
     if (!title || !description || !price || !contact || !images || !username || !menu || !adress) {
       return res.status(400).json({ message: 'Thiếu dữ liệu bắt buộc.' });
@@ -62,10 +63,10 @@ app.post('/submit-post', async (req, res) => {
       price,
       contact,
       images,
-      username,  // Lưu username
-      menu,       // Nếu có thêm menu, adress thì lưu luôn
+      username,  // Lưu username dạng chuỗi
+      menu,
       adress,
-      approved: false, // Mặc định bài mới đăng là chưa duyệt
+      approved: false,
       createdAt: new Date()
     };
 
@@ -73,11 +74,10 @@ app.post('/submit-post', async (req, res) => {
     res.json({ message: 'Đăng bài thành công!' });
 
   } catch (err) {
-    console.error('Lỗi đăng bải: ảnh quá nặng:', err);
+    console.error('Lỗi submit bài:', err);
     res.status(500).json({ message: 'Lỗi server' });
   }
 });
-
 // ----- Lấy bài chưa duyệt (admin) -----
 app.get('/admin/waiting', async (req, res) => {
   try {
