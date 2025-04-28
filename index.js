@@ -186,6 +186,18 @@ app.post('/post/:id/comment', async (req, res) => {
   }
 });
 
+//Lấy bài đăng của 1 thành viên
+app.get('/my-posts/:username', async (req, res) => {
+  try {
+    const username = req.params.username;
+    const posts = await db.collection('posts').find({ username, approved: true }).toArray();
+    res.json(posts);
+  } catch (error) {
+    console.error('Lỗi lấy bài của thành viên:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
+
 // APPROVE PAYMENT
 app.post("/approve-payment", async (req, res) => {
   const { paymentId } = req.body;
