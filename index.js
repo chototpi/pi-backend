@@ -224,8 +224,8 @@ app.post('/post/:id/comment', async (req, res) => {
   }
 });
 
-//Lấy bài của 1 thành viên
-app.get('/my-posts/:username', async (req, res) => {
+//Lấy danh sách đăng theo username
+app.get('/account-posts/:username', async (req, res) => {
   try {
     const username = req.params.username;
     const posts = await db.collection('posts').find({ username, approved: true }).toArray();
