@@ -203,6 +203,24 @@ app.get("/post/:id", async (req, res) => {
   }
 });
 
+// API cập nhật bài đăng
+app.put('/update-post/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, price, description, contact } = req.body;
+
+    await db.collection('posts').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { title, price, description, contact, approved: false } } // Sau sửa thì cần duyệt lại
+    );
+
+    res.json({ message: "Cập nhật bài thành công." });
+  } catch (error) {
+    console.error('Lỗi cập nhật bài đăng:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
+
 // Route thêm bình luận
 app.post('/post/:id/comment', async (req, res) => {
   try {
