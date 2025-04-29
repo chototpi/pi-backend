@@ -164,7 +164,7 @@ app.delete("/reject-post/:id", async (req, res) => {
 });
 
 //Xóa Bài đã duyệt
-app.post("/admin/delete", async (req, res) => {
+app.delete("/admin/delete", async (req, res) => {
   try {
     const { id } = req.body;
     await client.connect();
