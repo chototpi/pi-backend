@@ -51,7 +51,15 @@ app.get("/", (req, res) => {
 app.post('/submit-post', async (req, res) => {
   try {
     const { title, description, price, contact, images, menu, adress } = req.body;
-    const username = String(req.body.username || "").trim(); // Ép kiểu String + trim luôn
+    
+    // Xử lý username
+    let username = "";
+    if (typeof req.body.username === "string") {
+      username = req.body.username.trim();
+    } else if (typeof req.body.username === "object" && req.body.username !== null) {
+      // Nếu username là object, chuyển thành chuỗi
+      username = req.body.username.username ? String(req.body.username.username).trim() : "";
+    }
 
     if (!title || !description || !price || !contact || !images || !username || !menu || !adress) {
       return res.status(400).json({ message: 'Thiếu dữ liệu bắt buộc.' });
@@ -63,7 +71,7 @@ app.post('/submit-post', async (req, res) => {
       price,
       contact,
       images,
-      username,  // Lưu username dạng chuỗi
+      username,    // Lưu username đã chuẩn hóa dạng chuỗi
       menu,
       adress,
       approved: false,
@@ -78,6 +86,7 @@ app.post('/submit-post', async (req, res) => {
     res.status(500).json({ message: 'Lỗi server' });
   }
 });
+
 // ----- Lấy bài chưa duyệt (admin) -----
 app.get('/admin/waiting', async (req, res) => {
   try {
