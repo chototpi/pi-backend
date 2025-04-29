@@ -153,9 +153,9 @@ app.get('/admin/approved', async (req, res) => {
 });
 
 // Từ chối bài (xoá bài chưa duyệt)
-app.reject("/admin/reject", async (req, res) => {
+app.delete("/reject-post/:id", async (req, res) => {
   try {
-    const id = req.params.id;
+    const { id } = req.params;
     await Post.deleteOne({ _id: new ObjectId(id) });
     res.json({ success: true });
   } catch (err) {
