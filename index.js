@@ -239,12 +239,11 @@ app.post('/post/:id/comment', async (req, res) => {
 app.get('/user-posts/:username', async (req, res) => {
   try {
     const username = req.params.username;
-    const db = client.db("chototpi");
-    const posts = await db.collection("posts").find({ username }).toArray(); // tìm theo username
+    const posts = await db.collection('posts').find({ username: username }).toArray();
     res.json(posts);
   } catch (error) {
-    console.error("Lỗi khi lấy bài đăng người dùng:", error);
-    res.status(500).json({ message: "Lỗi server" });
+    console.error('Lỗi lấy danh sách bài đăng:', error);
+    res.status(500).json({ message: 'Lỗi server' });
   }
 });
 
