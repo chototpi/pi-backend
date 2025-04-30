@@ -283,6 +283,7 @@ app.post("/submit-map-post", async (req, res) => {
   try {
     const post = req.body;
     post.status = "pending";
+    post.menu = "Dịch vụ";
     post.createdAt = new Date();
     await posts.insertOne(post);
     res.json({ success: true });
