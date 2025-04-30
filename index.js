@@ -164,18 +164,18 @@ app.delete("/reject-post/:id", async (req, res) => {
 });
 
 //Xóa Bài đã duyệt
-app.post("/delete/:id", async (req, res) => {
+app.delete("/delete/:id", async (req, res) => {
   try {
-    const { id } = req.body;
+    const id = req.params.id;
     await client.connect();
     const db = client.db("chototpi");
     const posts = db.collection("posts");
 
     await posts.deleteOne({ _id: new ObjectId(id) });
 
-    res.json({ message: "Đã xóa bài thành công" });
+    res.json({ message: "Đã xoá bài thành công" });
   } catch (err) {
-    console.error("Lỗi xóa bài:", err);
+    console.error("Lỗi xoá bài:", err);
     res.status(500).json({ message: "Lỗi server" });
   }
 });
