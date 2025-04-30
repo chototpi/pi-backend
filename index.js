@@ -277,21 +277,6 @@ app.delete('/delete-post/:id', async (req, res) => {
   }
 });
 
-//MAP FOR PI
-//Gửi bài mới các dịch vụ
-app.post("/submit-map-post", async (req, res) => {
-  try {
-    const post = req.body;
-    post.status = "pending";
-    post.menu = "Dịch vụ";
-    post.createdAt = new Date();
-    await posts.insertOne(post);
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Lỗi submit-map-post:", err);
-    res.status(500).json({ error: "Lỗi khi gửi bài dịch vụ." });
-  }
-});
 
 // APPROVE PAYMENT
 app.post("/approve-payment", async (req, res) => {
