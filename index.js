@@ -294,21 +294,21 @@ app.get("/posts", async (req, res) => {
 });
 
 // file: twitter-rss.js
-app.get('/news-feed', async (req, res) => {
+const Parser = require('rss-parser');
+const parser = new Parser();
+
+app.get("/news-feed", async (req, res) => {
   try {
-    const rssUrl = 'https://rsshub.app/twitter/user/PiCoreTeam';
-    const response = await axios.get(rssUrl);
-    const data = await parser(response.data);
-    const items = data.rss.channel[0].item.map(item => ({
-      title: item.title[0],
-      link: item.link[0],
-      pubDate: item.pubDate[0],
-      description: item.description[0]
+    const feed = await parser.parseURL("https://nitter.net/PiCoreTeam/rss");
+    const posts = feed.items.map(item => ({
+      title: item.title,
+      link: item.link,
+      date: item.pubDate
     }));
-    res.json(items);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Lỗi tải RSS' });
+    res.json(posts);
+  } catch (error) {
+    console.error("Lỗi lấy RSS:", error);
+    res.status(500).json({ error: "Không thể lấy tin tức" });
   }
 });
 
