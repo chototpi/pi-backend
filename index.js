@@ -277,6 +277,21 @@ app.delete('/delete-post/:id', async (req, res) => {
   }
 });
 
+//Tính năng lướt vô hạn
+app.get("/posts", async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const skip = (page - 1) * limit;
+
+  const posts = await db.collection("posts")
+    .find({ duyet: 1 })
+    .sort({ _id: -1 })
+    .skip(skip)
+    .limit(limit)
+    .toArray();
+
+  res.json(posts);
+});
 
 // APPROVE PAYMENT
 app.post("/approve-payment", async (req, res) => {
