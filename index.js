@@ -294,7 +294,6 @@ app.get("/posts", async (req, res) => {
 });
 
 // file: twitter-rss.js
-const express = require('express');
 const axios = require('axios');
 const parser = require('xml2js').parseStringPromise;
 const app = express();
