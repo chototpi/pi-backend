@@ -294,8 +294,6 @@ app.get("/posts", async (req, res) => {
 });
 
 // file: twitter-rss.js
-const parser = require('xml2js').parseStringPromise;
-
 app.get('/news-feed', async (req, res) => {
   try {
     const rssUrl = 'https://rsshub.app/twitter/user/PiCoreTeam';
@@ -313,8 +311,6 @@ app.get('/news-feed', async (req, res) => {
     res.status(500).json({ error: 'Lỗi tải RSS' });
   }
 });
-
-app.listen(3000, () => console.log('Twitter RSS backend đang chạy tại cổng 3000'));
 
 // APPROVE PAYMENT
 app.post("/approve-payment", async (req, res) => {
