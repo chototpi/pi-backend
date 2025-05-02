@@ -296,7 +296,6 @@ app.get("/posts", async (req, res) => {
 // file: twitter-rss.js
 const axios = require('axios');
 const parser = require('xml2js').parseStringPromise;
-const app = express();
 
 app.get('/news-feed', async (req, res) => {
   try {
