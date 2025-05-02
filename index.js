@@ -293,6 +293,32 @@ app.get("/posts", async (req, res) => {
   res.json(posts);
 });
 
+// file: twitter-rss.js
+const express = require('express');
+const axios = require('axios');
+const parser = require('xml2js').parseStringPromise;
+const app = express();
+
+app.get('/news-feed', async (req, res) => {
+  try {
+    const rssUrl = 'https://rsshub.app/twitter/user/PiCoreTeam';
+    const response = await axios.get(rssUrl);
+    const data = await parser(response.data);
+    const items = data.rss.channel[0].item.map(item => ({
+      title: item.title[0],
+      link: item.link[0],
+      pubDate: item.pubDate[0],
+      description: item.description[0]
+    }));
+    res.json(items);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Lỗi tải RSS' });
+  }
+});
+
+app.listen(3000, () => console.log('Twitter RSS backend đang chạy tại cổng 3000'));
+
 // APPROVE PAYMENT
 app.post("/approve-payment", async (req, res) => {
   const { paymentId } = req.body;
