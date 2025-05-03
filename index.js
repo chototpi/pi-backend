@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
+import Parser from 'rss-parser';
 // Xóa import ObjectId vì không cần thiết nếu dùng Mongoose cho route /post/:id
 import { MongoClient, ObjectId } from "mongodb"; // Comment hoặc xóa dòng này
 
@@ -294,9 +295,6 @@ app.get("/posts", async (req, res) => {
 });
 
 // file: twitter-rss.js
-const Parser = require('rss-parser');
-const parser = new Parser();
-
 app.get("/news-feed", async (req, res) => {
   try {
     const feed = await parser.parseURL("https://nitter.net/PiCoreTeam/rss");
