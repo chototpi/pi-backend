@@ -306,7 +306,7 @@ app.post("/approve-payment", async (req, res) => {
     const response = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/approve`, {
       method: "POST",
       headers: {
-        Authorization: `Key ${process.env.PI_API_KEY}`,
+        Authorization: `Key ${process.env.PI_API_MAINNET}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({})  // NEW body each time
@@ -341,7 +341,7 @@ app.post("/complete-payment", async (req, res) => {
     const response = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
       method: "POST",
       headers: {
-        Authorization: `Key ${process.env.PI_API_KEY}`,
+        Authorization: `Key ${process.env.PI_API_MAINNET}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({ txid }) // <-- Thêm txid vào body
