@@ -293,22 +293,6 @@ app.get("/posts", async (req, res) => {
   res.json(posts);
 });
 
-// file: twitter-rss.js
-app.get("/news-feed", async (req, res) => {
-  try {
-    const feed = await parser.parseURL("https://nitter.net/PiCoreTeam/rss");
-    const posts = feed.items.map(item => ({
-      title: item.title,
-      link: item.link,
-      date: item.pubDate
-    }));
-    res.json(posts);
-  } catch (error) {
-    console.error("Lỗi lấy RSS:", error);
-    res.status(500).json({ error: "Không thể lấy tin tức" });
-  }
-});
-
 // APPROVE PAYMENT
 app.post("/approve-payment", async (req, res) => {
   const { paymentId } = req.body;
