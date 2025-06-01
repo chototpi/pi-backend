@@ -479,7 +479,7 @@ app.get("/api/balance", async (req, res) => {
 
 // Lấy danh sách lệnh rút chưa xử lý
 app.get("/api/withdraw-logs", async (req, res) => {
-  const logs = db.collection("wallet_logs");
+  const logs = db.collection("wallet_requests");
   const data = await logs.find({ type: "withdraw", confirmed: { $ne: true } }).toArray();
   res.json({ logs: data });
 });
