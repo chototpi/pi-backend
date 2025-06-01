@@ -14,6 +14,6 @@
     "express": "^4.18.2",
     "mongoose": "^7.6.1",
     "@pinetwork-js/sdk": "^0.7.0",
-    "@pinetwork-js/api-typing": "^0.2.0"
+    "@pinetwork-js/api-typing": "^0.7.0"
   }
 }
