@@ -401,13 +401,14 @@ app.post("/wallet/deposit", async (req, res) => {
 
 //Rút Pi (Có kiểm duyệt trước)
 app.post("/wallet/withdraw", async (req, res) => {
-  const { username, amount } = req.body;
+  const { username, amount, address } = req.body;
 
-  if (!username || !amount || amount <= 0) {
+  if (!username || !amount || !address || amount <= 0) {
     return res.status(400).json({ success: false, message: "Dữ liệu không hợp lệ" });
   }
 
   const wallets = db.collection("wallets");
+  const requests = db.collection("withdraw_requests");
 
   try {
     const user = await wallets.findOne({ username });
@@ -415,22 +416,45 @@ app.post("/wallet/withdraw", async (req, res) => {
       return res.status(400).json({ success: false, message: "Số dư không đủ" });
     }
 
-    // Trừ số dư
-    await wallets.updateOne({ username }, { $inc: { balance: -amount } });
-
-    // Lưu lịch sử rút
-    const logs = db.collection("wallet_logs");
-    await logs.insertOne({
+    // Lưu yêu cầu rút chờ duyệt
+    await requests.insertOne({
       username,
       amount,
-      type: "withdraw",
+      address,
+      status: "pending",
       created_at: new Date(),
     });
 
-    return res.json({ success: true, message: "Rút Pi thành công" });
+    return res.json({ success: true, message: "Yêu cầu rút đã được gửi, chờ duyệt" });
   } catch (err) {
-    console.error("Lỗi rút Pi:", err);
+    console.error("Lỗi gửi yêu cầu rút:", err);
     return res.status(500).json({ success: false, message: "Lỗi máy chủ" });
+  }
+});
+
+//Admin duyệt rút pi
+app.post("/wallet/approve-withdraw", async (req, res) => {
+  const { requestId } = req.body;
+
+  if (!requestId) return res.status(400).json({ success: false, message: "Thiếu ID yêu cầu" });
+
+  const requests = db.collection("withdraw_requests");
+  const wallets = db.collection("wallets");
+
+  try {
+    const request = await requests.findOne({ _id: new ObjectId(requestId), status: "pending" });
+    if (!request) return res.status(404).json({ success: false, message: "Yêu cầu không tồn tại" });
+
+    // Trừ số dư người dùng
+    await wallets.updateOne({ username: request.username }, { $inc: { balance: -request.amount } });
+
+    // Cập nhật trạng thái yêu cầu
+    await requests.updateOne({ _id: request._id }, { $set: { status: "approved", approved_at: new Date() } });
+
+    res.json({ success: true, message: "Đã duyệt yêu cầu rút" });
+  } catch (err) {
+    console.error("Lỗi duyệt rút:", err);
+    res.status(500).json({ success: false, message: "Lỗi server" });
   }
 });
 
