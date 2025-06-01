@@ -477,6 +477,27 @@ app.get("/api/balance", async (req, res) => {
   }
 });
 
+// Lấy danh sách lệnh rút chưa xử lý
+app.get("/api/withdraw-logs", async (req, res) => {
+  const logs = db.collection("wallet_logs");
+  const data = await logs.find({ type: "withdraw", confirmed: { $ne: true } }).toArray();
+  res.json({ logs: data });
+});
+
+// Admin xác nhận đã chuyển Pi
+app.post("/api/withdraw-confirm", async (req, res) => {
+  const { id } = req.body;
+  if (!id) return res.status(400).json({ success: false, message: "Thiếu ID" });
+
+  const logs = db.collection("wallet_logs");
+  try {
+    await logs.updateOne({ _id: new ObjectId(id) }, { $set: { confirmed: true } });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, message: "Lỗi xác nhận" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
