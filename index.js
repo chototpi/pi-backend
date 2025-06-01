@@ -476,14 +476,19 @@ app.get("/api/balance", async (req, res) => {
   }
 });
 
-// Lấy danh sách lệnh rút chưa xử lý
+// API: Lấy tất cả yêu cầu rút Pi có trạng thái pending
 app.get("/api/withdraw-logs", async (req, res) => {
-  const logs = await db.collection("withdraw_requests")
-    .find({ status: "pending" })
-    .sort({ created_at: -1 })
-    .toArray();
+  try {
+    const logs = await db.collection("withdraw_requests")
+      .find({ status: "pending" })
+      .sort({ created_at: -1 })
+      .toArray();
 
-  res.json({ success: true, logs });
+    res.json({ success: true, logs });
+  } catch (err) {
+    console.error("Lỗi khi lấy withdraw logs:", err);
+    res.status(500).json({ success: false, message: "Lỗi server khi lấy danh sách rút Pi" });
+  }
 });
 
 // Admin xác nhận đã chuyển Pi
