@@ -401,61 +401,60 @@ app.post("/wallet/deposit", async (req, res) => {
 
 //Rút Pi (Có kiểm duyệt trước)
 app.post("/wallet/withdraw", async (req, res) => {
-  const { username, amount, address } = req.body;
+  const { username, address, amount } = req.body;
 
-  if (!username || !amount || !address || amount <= 0) {
+  if (!username || !address || !amount || amount <= 0) {
     return res.status(400).json({ success: false, message: "Dữ liệu không hợp lệ" });
   }
 
   const wallets = db.collection("wallets");
-  const requests = db.collection("withdraw_requests");
+  const user = await wallets.findOne({ username });
 
-  try {
-    const user = await wallets.findOne({ username });
-    if (!user || user.balance < amount) {
-      return res.status(400).json({ success: false, message: "Số dư không đủ" });
-    }
-
-    // Lưu yêu cầu rút chờ duyệt
-    await requests.insertOne({
-      username,
-      amount,
-      address,
-      status: "pending",
-      created_at: new Date(),
-    });
-
-    return res.json({ success: true, message: "Yêu cầu rút đã được gửi, chờ duyệt" });
-  } catch (err) {
-    console.error("Lỗi gửi yêu cầu rút:", err);
-    return res.status(500).json({ success: false, message: "Lỗi máy chủ" });
+  if (!user || user.balance < amount) {
+    return res.status(400).json({ success: false, message: "Số dư không đủ" });
   }
-});
 
+  await db.collection("withdraw_requests").insertOne({
+    username,
+    address,
+    amount,
+    status: "pending",
+    created_at: new Date()
+  });
+
+  res.json({ success: true, message: "Yêu cầu rút Pi đã được gửi" });
+});
 //Admin duyệt rút pi
 app.post("/wallet/approve-withdraw", async (req, res) => {
   const { requestId } = req.body;
+  if (!requestId) return res.status(400).json({ success: false, message: "Thiếu ID" });
 
-  if (!requestId) return res.status(400).json({ success: false, message: "Thiếu ID yêu cầu" });
-
+  const ObjectId = require("mongodb").ObjectId;
   const requests = db.collection("withdraw_requests");
   const wallets = db.collection("wallets");
 
-  try {
-    const request = await requests.findOne({ _id: new ObjectId(requestId), status: "pending" });
-    if (!request) return res.status(404).json({ success: false, message: "Yêu cầu không tồn tại" });
+  const request = await requests.findOne({ _id: new ObjectId(requestId), status: "pending" });
+  if (!request) return res.status(404).json({ success: false, message: "Không tìm thấy yêu cầu" });
 
-    // Trừ số dư người dùng
-    await wallets.updateOne({ username: request.username }, { $inc: { balance: -request.amount } });
-
-    // Cập nhật trạng thái yêu cầu
-    await requests.updateOne({ _id: request._id }, { $set: { status: "approved", approved_at: new Date() } });
-
-    res.json({ success: true, message: "Đã duyệt yêu cầu rút" });
-  } catch (err) {
-    console.error("Lỗi duyệt rút:", err);
-    res.status(500).json({ success: false, message: "Lỗi server" });
+  const user = await wallets.findOne({ username: request.username });
+  if (!user || user.balance < request.amount) {
+    return res.status(400).json({ success: false, message: "Số dư không đủ" });
   }
+
+  // Gửi Pi bằng hàm thủ công fetch
+  const sendResult = await sendPiWithFetch(request.address, request.amount);
+  if (!sendResult.success) {
+    return res.status(500).json({ success: false, message: "Gửi Pi thất bại" });
+  }
+
+  // Trừ số dư và cập nhật trạng thái
+  await wallets.updateOne({ username: request.username }, { $inc: { balance: -request.amount } });
+  await requests.updateOne(
+    { _id: request._id },
+    { $set: { status: "approved", txid: sendResult.txid, approved_at: new Date() } }
+  );
+
+  res.json({ success: true, message: "Đã gửi Pi", txid: sendResult.txid });
 });
 
 // API GET: Lấy số dư người dùng (theo định dạng yêu cầu)
@@ -479,9 +478,12 @@ app.get("/api/balance", async (req, res) => {
 
 // Lấy danh sách lệnh rút chưa xử lý
 app.get("/api/withdraw-logs", async (req, res) => {
-  const logs = db.collection("wallet_requests");
-  const data = await logs.find({ type: "withdraw", confirmed: { $ne: true } }).toArray();
-  res.json({ logs: data });
+  const logs = await db.collection("withdraw_requests")
+    .find({ status: "pending" })
+    .sort({ created_at: -1 })
+    .toArray();
+
+  res.json({ success: true, logs });
 });
 
 // Admin xác nhận đã chuyển Pi
