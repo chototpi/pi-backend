@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
-import Pi from '@pinetwork-js/sdk';
 // Xóa import ObjectId vì không cần thiết nếu dùng Mongoose cho route /post/:id
 import { MongoClient, ObjectId } from "mongodb"; // Comment hoặc xóa dòng này
 
