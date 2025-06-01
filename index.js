@@ -43,7 +43,6 @@ const postSchema = new mongoose.Schema({
 });
 
 const Post = db.model("Post", postSchema);
-const { ObjectId } = require("mongodb");
 
 // ----- Trang chủ -----
 app.get("/", (req, res) => {
