@@ -537,6 +537,35 @@ app.post("/wallet/send", async (req, res) => {
   }
 });
 
+// Hàm gửi Pi thật bằng Pi SDK
+async function sendPiToUser(username, amount) {
+  try {
+    const wallets = db.collection("wallets");
+    const user = await wallets.findOne({ username });
+
+    if (!user || !user.wallet_address) {
+      return { success: false, message: "Không tìm thấy địa chỉ ví người dùng" };
+    }
+
+    const result = await pi.wallet.sendPayment({
+      to: user.wallet_address,
+      amount: amount.toString(),
+      memo: `Withdraw Pi by ${username}`
+    });
+
+    if (result && result.txid) {
+      console.log("Đã gửi Pi thành công:", result.txid);
+      return { success: true, txid: result.txid };
+    } else {
+      return { success: false, message: "Không có txid trả về" };
+    }
+
+  } catch (err) {
+    console.error("Lỗi khi gửi Pi:", err);
+    return { success: false, message: "Lỗi khi gửi Pi" };
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
