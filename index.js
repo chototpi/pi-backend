@@ -43,6 +43,7 @@ const postSchema = new mongoose.Schema({
 });
 
 const Post = db.model("Post", postSchema);
+const { ObjectId } = require("mongodb");
 
 // ----- Trang chủ -----
 app.get("/", (req, res) => {
@@ -456,16 +457,15 @@ app.post("/wallet/approve-withdraw", async (req, res) => {
         { $inc: { balance: -request.amount } }
       );
 
-      return res.json({ success: true });
+      return res.json({ success: true, txid: result.txid });
     } else {
       return res.status(500).json({ success: false, message: "Chuyển Pi thất bại", error: result.error });
     }
   } catch (err) {
     console.error("Lỗi khi duyệt rút Pi:", err);
-    return res.status(500).json({ success: false, message: "Lỗi server" });
+    return res.status(500).json({ success: false, message: "Lỗi server", error: err.message });
   }
 });
-
 // API GET: Lấy số dư người dùng (theo định dạng yêu cầu)
 app.get("/api/balance", async (req, res) => {
   const { username } = req.query;
