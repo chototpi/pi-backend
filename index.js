@@ -9,6 +9,7 @@ import { MongoClient, ObjectId } from "mongodb"; // Comment hoặc xóa dòng n�
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
+const Pi = require('@pinetwork-js/sdk');
 
 app.use(cors({
   origin: ["https://chototpi.site"], // cho phép domain này gọi API
