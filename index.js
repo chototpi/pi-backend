@@ -424,37 +424,46 @@ app.post("/wallet/withdraw", async (req, res) => {
 
   res.json({ success: true, message: "Yêu cầu rút Pi đã được gửi" });
 });
+
 //Admin duyệt rút pi
 app.post("/wallet/approve-withdraw", async (req, res) => {
-  const { requestId } = req.body;
-  if (!requestId) return res.status(400).json({ success: false, message: "Thiếu ID" });
+  const { id } = req.body;
 
-  const ObjectId = require("mongodb").ObjectId;
-  const requests = db.collection("withdraw_requests");
-  const wallets = db.collection("wallets");
-
-  const request = await requests.findOne({ _id: new ObjectId(requestId), status: "pending" });
-  if (!request) return res.status(404).json({ success: false, message: "Không tìm thấy yêu cầu" });
-
-  const user = await wallets.findOne({ username: request.username });
-  if (!user || user.balance < request.amount) {
-    return res.status(400).json({ success: false, message: "Số dư không đủ" });
+  if (!id) {
+    return res.status(400).json({ success: false, message: "Thiếu ID" });
   }
 
-  // Gửi Pi bằng hàm thủ công fetch
-  const sendResult = await sendPiWithFetch(request.address, request.amount);
-  if (!sendResult.success) {
-    return res.status(500).json({ success: false, message: "Gửi Pi thất bại" });
+  try {
+    const request = await db.collection("withdraw_requests").findOne({ _id: new ObjectId(id) });
+
+    if (!request || request.status !== "pending") {
+      return res.status(400).json({ success: false, message: "Yêu cầu không tồn tại hoặc đã xử lý" });
+    }
+
+    // Gửi Pi thật
+    const result = await sendPiWithFetch(request.address, request.amount);
+
+    if (result.success) {
+      // Cập nhật trạng thái
+      await db.collection("withdraw_requests").updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { status: "approved", txid: result.txid, approved_at: new Date() } }
+      );
+
+      // Trừ số dư
+      await db.collection("wallets").updateOne(
+        { username: request.username },
+        { $inc: { balance: -request.amount } }
+      );
+
+      return res.json({ success: true });
+    } else {
+      return res.status(500).json({ success: false, message: "Chuyển Pi thất bại", error: result.error });
+    }
+  } catch (err) {
+    console.error("Lỗi khi duyệt rút Pi:", err);
+    return res.status(500).json({ success: false, message: "Lỗi server" });
   }
-
-  // Trừ số dư và cập nhật trạng thái
-  await wallets.updateOne({ username: request.username }, { $inc: { balance: -request.amount } });
-  await requests.updateOne(
-    { _id: request._id },
-    { $set: { status: "approved", txid: sendResult.txid, approved_at: new Date() } }
-  );
-
-  res.json({ success: true, message: "Đã gửi Pi", txid: sendResult.txid });
 });
 
 // API GET: Lấy số dư người dùng (theo định dạng yêu cầu)
@@ -536,32 +545,35 @@ app.post("/wallet/send", async (req, res) => {
   }
 });
 
-// Hàm gửi Pi thật bằng Pi SDK
-async function sendPiToUser(username, amount) {
+// Hàm gửi Pi
+async function sendPiWithFetch(toAddress, amount) {
+  const apiKey = process.env.WALLET_KEY;
+  const fromAddress = "GC4WRGL4VF75GXU7XIZKKPY3NLVDRU7SL5A5U3F2C5O33T4YGTW3SR4Q"; // địa chỉ ví App
+
   try {
-    const wallets = db.collection("wallets");
-    const user = await wallets.findOne({ username });
-
-    if (!user || !user.wallet_address) {
-      return { success: false, message: "Không tìm thấy địa chỉ ví người dùng" };
-    }
-
-    const result = await pi.wallet.sendPayment({
-      to: user.wallet_address,
-      amount: amount.toString(),
-      memo: `Withdraw Pi by ${username}`
+    const res = await fetch("https://api.minepi.com/v2/payments", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        sender_uid: "your_app_uid",
+        recipient_address: toAddress,
+        amount: amount,
+        memo: "Withdraw from App",
+        metadata: {}
+      })
     });
 
-    if (result && result.txid) {
-      console.log("Đã gửi Pi thành công:", result.txid);
-      return { success: true, txid: result.txid };
+    const data = await res.json();
+    if (data.txid) {
+      return { success: true, txid: data.txid };
     } else {
-      return { success: false, message: "Không có txid trả về" };
+      return { success: false, error: data };
     }
-
   } catch (err) {
-    console.error("Lỗi khi gửi Pi:", err);
-    return { success: false, message: "Lỗi khi gửi Pi" };
+    return { success: false, error: err.message };
   }
 }
 
