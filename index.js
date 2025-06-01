@@ -489,7 +489,7 @@ app.post("/api/withdraw-confirm", async (req, res) => {
   const { id } = req.body;
   if (!id) return res.status(400).json({ success: false, message: "Thiếu ID" });
 
-  const logs = db.collection("wallet_logs");
+  const logs = db.collection("wallet_requests");
   try {
     await logs.updateOne({ _id: new ObjectId(id) }, { $set: { confirmed: true } });
     res.json({ success: true });
