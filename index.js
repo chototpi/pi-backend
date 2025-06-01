@@ -434,17 +434,22 @@ app.post("/wallet/withdraw", async (req, res) => {
   }
 });
 
-//Lấy số dư người dùng
-app.get("/wallet/:username", async (req, res) => {
-  const username = req.params.username;
-  const wallets = db.collection("wallets");
+// API GET: Lấy số dư người dùng (theo định dạng yêu cầu)
+app.get("/api/balance", async (req, res) => {
+  const { username } = req.query;
+  if (!username) {
+    return res.status(400).json({ success: false, message: "Thiếu username" });
+  }
 
   try {
+    const wallets = db.collection("wallets");
     const user = await wallets.findOne({ username });
-    res.json({ balance: user?.balance || 0 });
+
+    const balance = user?.balance || 0;
+    res.json({ success: true, balance });
   } catch (err) {
     console.error("Lỗi lấy số dư:", err);
-    res.status(500).json({ error: "Lỗi server" });
+    res.status(500).json({ success: false, message: "Lỗi server" });
   }
 });
 
