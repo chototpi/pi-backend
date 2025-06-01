@@ -363,6 +363,91 @@ app.post("/complete-payment", async (req, res) => {
   }
 });
 
+//Nạp Pi thành công Cập nhật số dư
+app.post("/wallet/deposit", async (req, res) => {
+  const { username, amount, txid } = req.body;
+
+  if (!username || !amount || !txid) {
+    return res.status(400).json({ error: "Thiếu dữ liệu" });
+  }
+
+  const wallets = db.collection("wallets");
+
+  try {
+    await wallets.updateOne(
+      { username },
+      {
+        $inc: { balance: amount },
+        $push: {
+          transactions: {
+            type: "deposit",
+            amount,
+            txid,
+            createdAt: new Date()
+          }
+        }
+      },
+      { upsert: true }
+    );
+
+    res.json({ message: "Nạp Pi thành công" });
+  } catch (err) {
+    console.error("Lỗi nạp Pi:", err);
+    res.status(500).json({ error: "Lỗi server" });
+  }
+});
+
+//Rút Pi (Có kiểm duyệt trước)
+app.post("/wallet/withdraw", async (req, res) => {
+  const { username, amount } = req.body;
+
+  if (!username || !amount) {
+    return res.status(400).json({ error: "Thiếu dữ liệu" });
+  }
+
+  const wallets = db.collection("wallets");
+  const user = await wallets.findOne({ username });
+
+  if (!user || user.balance < amount) {
+    return res.status(400).json({ error: "Số dư không đủ" });
+  }
+
+  try {
+    await wallets.updateOne(
+      { username },
+      {
+        $inc: { balance: -amount },
+        $push: {
+          transactions: {
+            type: "withdraw",
+            amount,
+            createdAt: new Date()
+          }
+        }
+      }
+    );
+
+    res.json({ message: "Yêu cầu rút Pi đã được ghi nhận" });
+  } catch (err) {
+    console.error("Lỗi rút Pi:", err);
+    res.status(500).json({ error: "Lỗi server" });
+  }
+});
+
+//Lấy số dư người dùng
+app.get("/wallet/:username", async (req, res) => {
+  const username = req.params.username;
+  const wallets = db.collection("wallets");
+
+  try {
+    const user = await wallets.findOne({ username });
+    res.json({ balance: user?.balance || 0 });
+  } catch (err) {
+    console.error("Lỗi lấy số dư:", err);
+    res.status(500).json({ error: "Lỗi server" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
