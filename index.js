@@ -401,36 +401,34 @@ app.post("/wallet/deposit", async (req, res) => {
 app.post("/wallet/withdraw", async (req, res) => {
   const { username, amount } = req.body;
 
-  if (!username || !amount) {
-    return res.status(400).json({ error: "Thiếu dữ liệu" });
+  if (!username || !amount || amount <= 0) {
+    return res.status(400).json({ success: false, message: "Dữ liệu không hợp lệ" });
   }
 
   const wallets = db.collection("wallets");
-  const user = await wallets.findOne({ username });
-
-  if (!user || user.balance < amount) {
-    return res.status(400).json({ error: "Số dư không đủ" });
-  }
 
   try {
-    await wallets.updateOne(
-      { username },
-      {
-        $inc: { balance: -amount },
-        $push: {
-          transactions: {
-            type: "withdraw",
-            amount,
-            createdAt: new Date()
-          }
-        }
-      }
-    );
+    const user = await wallets.findOne({ username });
+    if (!user || user.balance < amount) {
+      return res.status(400).json({ success: false, message: "Số dư không đủ" });
+    }
 
-    res.json({ message: "Yêu cầu rút Pi đã được ghi nhận" });
+    // Trừ số dư
+    await wallets.updateOne({ username }, { $inc: { balance: -amount } });
+
+    // Lưu lịch sử rút
+    const logs = db.collection("wallet_logs");
+    await logs.insertOne({
+      username,
+      amount,
+      type: "withdraw",
+      created_at: new Date(),
+    });
+
+    return res.json({ success: true, message: "Rút Pi thành công" });
   } catch (err) {
     console.error("Lỗi rút Pi:", err);
-    res.status(500).json({ error: "Lỗi server" });
+    return res.status(500).json({ success: false, message: "Lỗi máy chủ" });
   }
 });
 
