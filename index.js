@@ -11,6 +11,13 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const Pi = require('@pinetwork-js/sdk');
 
+// Khởi tạo SDK Pi
+const pi = new Pi({
+  apiKey: process.env.PI_API_KEY,
+  walletPrivateSeed: process.env.WALLET_KEY, 
+  network: "testnet"
+});
+
 app.use(cors({
   origin: ["https://chototpi.site"], // cho phép domain này gọi API
   methods: ["GET", "POST"],
