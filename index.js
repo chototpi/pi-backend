@@ -498,6 +498,37 @@ app.post("/api/withdraw-confirm", async (req, res) => {
   }
 });
 
+// Route gửi Pi từ ví admin đến người dùng
+app.post("/wallet/send", async (req, res) => {
+  const { username, amount } = req.body;
+
+  if (!username || !amount || amount <= 0) {
+    return res.status(400).json({ success: false, message: "Dữ liệu không hợp lệ" });
+  }
+
+  try {
+    const wallets = db.collection("wallets");
+    const user = await wallets.findOne({ username });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+    }
+
+    // 🧠: Ở đây bạn sẽ thực hiện gửi Pi thật nếu muốn
+    // Ví dụ gọi hàm giả lập:
+    const result = await sendPiToUser(username, amount); // Hàm này bạn cần định nghĩa
+
+    if (result.success) {
+      return res.json({ success: true });
+    } else {
+      return res.status(500).json({ success: false, message: "Gửi Pi thất bại" });
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: "Lỗi server" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
