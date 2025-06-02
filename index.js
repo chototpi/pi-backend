@@ -7,8 +7,6 @@ import fetch from "node-fetch";
 import { MongoClient, ObjectId } from "mongodb"; // Comment hoặc xóa dòng này
 import pkg from "@stellar/stellar-sdk";
 
-const server = new pkg.Server("https://api.testnet.minepi.com");
-
 // Và dùng phần còn lại như:
 const Networks = pkg.Networks;
 const Keypair = pkg.Keypair;
@@ -24,7 +22,7 @@ const APP_PUBLIC_KEY = Keypair.fromSecret(APP_SECRET_KEY).publicKey();
 const PI_API_KEY = process.env.PI_API_KEY;
 
 // Mạng Pi Testnet
-const server = new Server("https://api.testnet.minepi.com");
+const server = new pkg.Server("https://api.testnet.minepi.com");
 Networks.TESTNET; // không cần gọi init nếu không cần signature override
 
 dotenv.config();
