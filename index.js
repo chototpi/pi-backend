@@ -6,14 +6,15 @@ import fetch from "node-fetch";
 // Xóa import ObjectId vì không cần thiết nếu dùng Mongoose cho route /post/:id
 import { MongoClient, ObjectId } from "mongodb"; // Comment hoặc xóa dòng này
 import pkg from "@stellar/stellar-sdk";
-const {
-  Server,
-  Networks,
-  Keypair,
-  Asset,
-  Operation,
-  TransactionBuilder,
-} = pkg;
+
+const server = new pkg.Server("https://api.testnet.minepi.com");
+
+// Và dùng phần còn lại như:
+const Networks = pkg.Networks;
+const Keypair = pkg.Keypair;
+const Asset = pkg.Asset;
+const Operation = pkg.Operation;
+const TransactionBuilder = pkg.TransactionBuilder;
 
 // Khóa bí mật của ví App – từ biến môi trường
 const APP_SECRET_KEY = process.env.WALLET_SECRET_KEY;
