@@ -8,7 +8,7 @@ import { MongoClient, ObjectId } from "mongodb"; // Comment hoặc xóa dòng n�
 import StellarSdk from "@stellar/stellar-sdk";
 
 // Khóa bí mật của ví App – từ biến môi trường
-const APP_SECRET_KEY = process.env.WALLET_KEY;
+const APP_SECRET_KEY = process.env.WALLET_SECRET_KEY;
 const APP_PUBLIC_KEY = StellarSdk.Keypair.fromSecret(APP_SECRET_KEY).publicKey();
 
 // Pi API Key – lấy từ Developer Portal
@@ -201,31 +201,36 @@ app.post("/wallet/approve-withdraw", async (req, res) => {
       return res.status(400).json({ success: false, message: "Yêu cầu không tồn tại hoặc đã xử lý" });
     }
 
-    // Gửi Pi thật
-    const result = await sendPiWithFetch(request.address, request.amount);
-
-    if (result.success) {
-      // Cập nhật trạng thái
-      await db.collection("withdraw_requests").updateOne(
-        { _id: new ObjectId(id) },
-        { $set: { status: "approved", txid: result.txid, approved_at: new Date() } }
-      );
-
-      // Trừ số dư
-      await db.collection("wallets").updateOne(
-        { username: request.username },
-        { $inc: { balance: -request.amount } }
-      );
-
-      return res.json({ success: true, txid: result.txid });
-    } else {
-      return res.status(500).json({ success: false, message: "Chuyển Pi thất bại", error: result.error });
+    // B1: tạo giao dịch A2U
+    const created = await initiateA2UPayment(request.address, request.amount, "Rút Pi");
+    if (!created.success) {
+      return res.status(500).json({ success: false, message: "Lỗi tạo A2U", error: created.error });
     }
+
+    // B2: ký & gửi giao dịch đến blockchain
+    const submitted = await signAndSubmitA2UTransaction(created.paymentId, created.recipient, request.amount);
+    if (!submitted.success) {
+      return res.status(500).json({ success: false, message: "Lỗi gửi giao dịch", error: submitted.error });
+    }
+
+    // B3: cập nhật database
+    await db.collection("withdraw_requests").updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status: "approved", txid: submitted.txid, approved_at: new Date() } }
+    );
+
+    await db.collection("wallets").updateOne(
+      { username: request.username },
+      { $inc: { balance: -request.amount } }
+    );
+
+    return res.json({ success: true, txid: submitted.txid });
   } catch (err) {
     console.error("Lỗi khi duyệt rút Pi:", err);
     return res.status(500).json({ success: false, message: "Lỗi server", error: err.message });
   }
 });
+
 // API GET: Lấy số dư người dùng (theo định dạng yêu cầu)
 app.get("/api/balance", async (req, res) => {
   const { username } = req.query;
@@ -305,34 +310,64 @@ app.post("/wallet/send", async (req, res) => {
   }
 });
 
-// Hàm gửi Pi
-async function sendPiWithFetch(toAddress, amount) {
-  const apiKey = process.env.WALLET_KEY;
-  const fromAddress = "GC4WRGL4VF75GXU7XIZKKPY3NLVDRU7SL5A5U3F2C5O33T4YGTW3SR4Q"; // địa chỉ ví App
-
+// B1: Gửi yêu cầu tạo giao dịch đến Pi API
+async function initiateA2UPayment(toAddress, amount, memo = "") {
   try {
-    const res = await fetch("https://api.minepi.com/v2/payments", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
+    const res = await axios.post(
+      "https://api.minepi.com/v2/payments",
+      {
+        amount: amount.toString(),
+        memo,
+        metadata: { purpose: "A2U payout" },
+        to_address: toAddress,
       },
-      body: JSON.stringify({
-        sender_uid: "your_app_uid",
-        recipient_address: toAddress,
-        amount: amount,
-        memo: "Withdraw from App",
-        metadata: {}
-      })
-    });
+      {
+        headers: {
+          Authorization: `Key ${PI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-    const data = await res.json();
-    if (data.txid) {
-      return { success: true, txid: data.txid };
-    } else {
-      return { success: false, error: data };
-    }
+    return {
+      success: true,
+      paymentId: res.data.identifier,
+      recipient: res.data.recipient,
+    };
   } catch (err) {
+    console.error("❌ Tạo A2U thất bại:", err.response?.data || err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+// B2: Tạo và gửi giao dịch đến blockchain
+async function signAndSubmitA2UTransaction(paymentId, recipientAddress, amount) {
+  try {
+    const sourceKeypair = StellarSdk.Keypair.fromSecret(APP_SECRET_KEY);
+    const account = await server.loadAccount(APP_PUBLIC_KEY);
+    const fee = await server.fetchBaseFee();
+
+    const tx = new StellarSdk.TransactionBuilder(account, {
+      fee,
+      networkPassphrase: StellarSdk.Networks.TESTNET,
+    })
+      .addOperation(
+        StellarSdk.Operation.payment({
+          destination: recipientAddress,
+          asset: StellarSdk.Asset.native(),
+          amount: amount.toString(),
+        })
+      )
+      .setTimeout(60)
+      .build();
+
+    tx.sign(sourceKeypair);
+    const result = await server.submitTransaction(tx);
+
+    console.log("✅ Gửi Pi thành công:", result.hash);
+    return { success: true, txid: result.hash };
+  } catch (err) {
+    console.error("❌ Gửi Pi lỗi:", err.response?.data || err.message);
     return { success: false, error: err.message };
   }
 }
