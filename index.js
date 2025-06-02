@@ -5,7 +5,15 @@ import dotenv from "dotenv";
 import fetch from "node-fetch";
 // Xóa import ObjectId vì không cần thiết nếu dùng Mongoose cho route /post/:id
 import { MongoClient, ObjectId } from "mongodb"; // Comment hoặc xóa dòng này
-import { Server, Networks, Keypair, Asset, Operation, TransactionBuilder } from "@stellar/stellar-sdk";
+import pkg from "@stellar/stellar-sdk";
+const {
+  Server,
+  Networks,
+  Keypair,
+  Asset,
+  Operation,
+  TransactionBuilder,
+} = pkg;
 
 // Khóa bí mật của ví App – từ biến môi trường
 const APP_SECRET_KEY = process.env.WALLET_SECRET_KEY;
