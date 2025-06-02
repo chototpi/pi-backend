@@ -5,18 +5,18 @@ import dotenv from "dotenv";
 import fetch from "node-fetch";
 // Xóa import ObjectId vì không cần thiết nếu dùng Mongoose cho route /post/:id
 import { MongoClient, ObjectId } from "mongodb"; // Comment hoặc xóa dòng này
-import StellarSdk from "@stellar/stellar-sdk";
+import { Server, Networks, Keypair, Asset, Operation, TransactionBuilder } from "@stellar/stellar-sdk";
 
 // Khóa bí mật của ví App – từ biến môi trường
 const APP_SECRET_KEY = process.env.WALLET_SECRET_KEY;
-const APP_PUBLIC_KEY = StellarSdk.Keypair.fromSecret(APP_SECRET_KEY).publicKey();
+const APP_PUBLIC_KEY = Keypair.fromSecret(APP_SECRET_KEY).publicKey();
 
 // Pi API Key – lấy từ Developer Portal
 const PI_API_KEY = process.env.PI_API_KEY;
 
 // Mạng Pi Testnet
-const server = new StellarSdk.Server("https://api.testnet.minepi.com");
-StellarSdk.Networks.TESTNET; // không cần gọi init nếu không cần signature override
+const server = new Server("https://api.testnet.minepi.com");
+Networks.TESTNET; // không cần gọi init nếu không cần signature override
 
 dotenv.config();
 const app = express();
@@ -343,18 +343,18 @@ async function initiateA2UPayment(toAddress, amount, memo = "") {
 // B2: Tạo và gửi giao dịch đến blockchain
 async function signAndSubmitA2UTransaction(paymentId, recipientAddress, amount) {
   try {
-    const sourceKeypair = StellarSdk.Keypair.fromSecret(APP_SECRET_KEY);
+    const sourceKeypair = Keypair.fromSecret(APP_SECRET_KEY);
     const account = await server.loadAccount(APP_PUBLIC_KEY);
     const fee = await server.fetchBaseFee();
 
-    const tx = new StellarSdk.TransactionBuilder(account, {
+    const tx = new TransactionBuilder(account, {
       fee,
-      networkPassphrase: StellarSdk.Networks.TESTNET,
+      networkPassphrase: Networks.TESTNET,
     })
       .addOperation(
-        StellarSdk.Operation.payment({
+        Operation.payment({
           destination: recipientAddress,
-          asset: StellarSdk.Asset.native(),
+          asset: Asset.native(),
           amount: amount.toString(),
         })
       )
