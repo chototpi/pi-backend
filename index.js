@@ -7,22 +7,24 @@ import fetch from "node-fetch";
 import { MongoClient, ObjectId } from "mongodb"; // Comment hoặc xóa dòng này
 import pkg from "@stellar/stellar-sdk";
 
-// Và dùng phần còn lại như:
-const Networks = pkg.Networks;
-const Keypair = pkg.Keypair;
-const Asset = pkg.Asset;
-const Operation = pkg.Operation;
-const TransactionBuilder = pkg.TransactionBuilder;
+dotenv.config();
+
+const {
+  Server: StellarServer,
+  Networks,
+  Keypair,
+  Asset,
+  Operation,
+  TransactionBuilder,
+} = pkg;
 
 // Khóa bí mật của ví App – từ biến môi trường
 const APP_SECRET_KEY = process.env.WALLET_SECRET_KEY;
 const APP_PUBLIC_KEY = Keypair.fromSecret(APP_SECRET_KEY).publicKey();
-
-// Pi API Key – lấy từ Developer Portal
 const PI_API_KEY = process.env.PI_API_KEY;
 
 // Mạng Pi Testnet
-const server = new pkg.Server("https://api.testnet.minepi.com");
+const stellarServer = new StellarServer("https://api.testnet.minepi.com");
 Networks.TESTNET; // không cần gọi init nếu không cần signature override
 
 dotenv.config();
@@ -34,7 +36,7 @@ app.use(cors({
   methods: ["GET", "POST"],
   credentials: true
 }));
-app.use(express.json());
+app.use(bodyParser.json());
 // Xóa client vì không sử dụng MongoDB native driver trong route /post/:id
 const client = new MongoClient(process.env.MONGODB_URI, {});
 
@@ -208,27 +210,26 @@ app.post("/wallet/approve-withdraw", async (req, res) => {
       return res.status(400).json({ success: false, message: "Yêu cầu không tồn tại hoặc đã xử lý" });
     }
 
-    // B1: tạo giao dịch A2U
-    const created = await initiateA2UPayment(request.address, request.amount, "Rút Pi");
+    const { address, amount, username } = request;
+
+    const created = await initiateA2UPayment(address, amount, "Rút Pi");
     if (!created.success) {
       return res.status(500).json({ success: false, message: "Lỗi tạo A2U", error: created.error });
     }
 
-    // B2: ký & gửi giao dịch đến blockchain
-    const submitted = await signAndSubmitA2UTransaction(created.paymentId, created.recipient, request.amount);
+    const submitted = await signAndSubmitA2UTransaction(created.paymentId, created.recipient, amount);
     if (!submitted.success) {
       return res.status(500).json({ success: false, message: "Lỗi gửi giao dịch", error: submitted.error });
     }
 
-    // B3: cập nhật database
     await db.collection("withdraw_requests").updateOne(
       { _id: new ObjectId(id) },
       { $set: { status: "approved", txid: submitted.txid, approved_at: new Date() } }
     );
 
     await db.collection("wallets").updateOne(
-      { username: request.username },
-      { $inc: { balance: -request.amount } }
+      { username },
+      { $inc: { balance: -amount } }
     );
 
     return res.json({ success: true, txid: submitted.txid });
@@ -317,7 +318,7 @@ app.post("/wallet/send", async (req, res) => {
   }
 });
 
-// B1: Gửi yêu cầu tạo giao dịch đến Pi API
+// --- HÀM TẠO GIAO DỊCH A2U ---
 async function initiateA2UPayment(toAddress, amount, memo = "") {
   try {
     const res = await axios.post(
@@ -347,12 +348,12 @@ async function initiateA2UPayment(toAddress, amount, memo = "") {
   }
 }
 
-// B2: Tạo và gửi giao dịch đến blockchain
+// --- HÀM KÝ VÀ GỬI GIAO DỊCH ---
 async function signAndSubmitA2UTransaction(paymentId, recipientAddress, amount) {
   try {
     const sourceKeypair = Keypair.fromSecret(APP_SECRET_KEY);
-    const account = await server.loadAccount(APP_PUBLIC_KEY);
-    const fee = await server.fetchBaseFee();
+    const account = await stellarServer.loadAccount(APP_PUBLIC_KEY);
+    const fee = await stellarServer.fetchBaseFee();
 
     const tx = new TransactionBuilder(account, {
       fee,
@@ -369,7 +370,7 @@ async function signAndSubmitA2UTransaction(paymentId, recipientAddress, amount) 
       .build();
 
     tx.sign(sourceKeypair);
-    const result = await server.submitTransaction(tx);
+    const result = await stellarServer.submitTransaction(tx);
 
     console.log("✅ Gửi Pi thành công:", result.hash);
     return { success: true, txid: result.hash };
@@ -378,6 +379,7 @@ async function signAndSubmitA2UTransaction(paymentId, recipientAddress, amount) 
     return { success: false, error: err.message };
   }
 }
+
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
