@@ -5,26 +5,23 @@ import dotenv from "dotenv";
 import fetch from "node-fetch";
 // Xóa import ObjectId vì không cần thiết nếu dùng Mongoose cho route /post/:id
 import { MongoClient, ObjectId } from "mongodb"; // Comment hoặc xóa dòng này
-import pkg from "@stellar/stellar-sdk";
+import StellarSdk from "@stellar/stellar-sdk";
 
-dotenv.config();
-
-const {
-  Server: StellarServer,
-  Networks,
-  Keypair,
-  Asset,
-  Operation,
-  TransactionBuilder,
-} = pkg;
+const stellarServer = new StellarSdk.Server("https://api.testnet.minepi.com");
+const APP_PUBLIC_KEY = StellarSdk.Keypair.fromSecret(APP_SECRET_KEY).publicKey();
+const Networks = StellarSdk.Networks;
+const Keypair = StellarSdk.Keypair;
+const Asset = StellarSdk.Asset;
+const Operation = StellarSdk.Operation;
+const TransactionBuilder = StellarSdk.TransactionBuilder;
 
 // Khóa bí mật của ví App – từ biến môi trường
 const APP_SECRET_KEY = process.env.WALLET_SECRET_KEY;
-const APP_PUBLIC_KEY = Keypair.fromSecret(APP_SECRET_KEY).publicKey();
+const APP_PUBLIC_KEY = StellarSdk.Keypair.fromSecret(APP_SECRET_KEY).publicKey();
 const PI_API_KEY = process.env.PI_API_KEY;
 
 // Mạng Pi Testnet
-const stellarServer = new StellarServer("https://api.testnet.minepi.com");
+const stellarServer = new StellarSdk.Server("https://api.testnet.minepi.com");
 Networks.TESTNET; // không cần gọi init nếu không cần signature override
 
 dotenv.config();
