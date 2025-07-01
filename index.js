@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors({
-  origin: "https://payofpi.click"
+  origin: "https://vn.payofpi.click"
 }));
 app.use(express.json());
 // Xóa client vì không sử dụng MongoDB native driver trong route /post/:id
