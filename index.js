@@ -118,27 +118,23 @@ app.post("/complete-payment", async (req, res) => {
 });
 
 app.get("/pinet/meta", (req, res) => {
-  const pathname = decodeURIComponent(req.query.pathname || "");
+  const pathname = req.query.pathname || "/";
 
-  console.log("🔍 PiNet yêu cầu metadata cho:", pathname);
-
+  // Tùy biến theo đường dẫn nếu bạn có nhiều page
   let metadata = {
-    title: "Pay of Pi - Ứng dụng thanh toán bằng Pi",
-    description: "Khám phá các dịch vụ thanh toán điện, nước, nạp điện thoại qua Pi Network.",
-    image: "https://vn.payofpi.click/logo.png" // Ảnh mặc định
+    title: "Pay Of Pi - Cổng thanh toán Pi",
+    description: "Thanh toán hoá đơn và nạp tiền bằng Pi Network tại Việt Nam.",
+    image: "https://payofpi7677.pinet.com/paylogo.png", // ảnh cần đúng URL truy cập được công khai
+    url: "https://payofpi7677.pinet.com" + pathname,
   };
 
-  // Bạn có thể mở rộng tùy theo đường dẫn
-  if (pathname === "/faq/1") {
-    metadata = {
-      title: "Câu hỏi thường gặp #1",
-      description: "Thông tin về việc thanh toán bằng Pi cho điện thoại.",
-      image: "https://v..payofpi.click/images/faq1.jpg"
-    };
-  }
-
-  // Trả về metadata
-  res.status(200).json(metadata);
+  // Trả về DTO chuẩn cho PiNet
+  res.status(200).json({
+    title: metadata.title,
+    description: metadata.description,
+    image: metadata.image,
+    url: metadata.url,
+  });
 });
 
 app.listen(PORT, () => {
