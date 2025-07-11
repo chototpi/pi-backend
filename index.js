@@ -117,6 +117,30 @@ app.post("/complete-payment", async (req, res) => {
   }
 });
 
+app.get("/pinet/meta", (req, res) => {
+  const pathname = decodeURIComponent(req.query.pathname || "");
+
+  console.log("🔍 PiNet yêu cầu metadata cho:", pathname);
+
+  let metadata = {
+    title: "Pay of Pi - Ứng dụng thanh toán bằng Pi",
+    description: "Khám phá các dịch vụ thanh toán điện, nước, nạp điện thoại qua Pi Network.",
+    image: "https://vn.payofpi.click/logo.png" // Ảnh mặc định
+  };
+
+  // Bạn có thể mở rộng tùy theo đường dẫn
+  if (pathname === "/faq/1") {
+    metadata = {
+      title: "Câu hỏi thường gặp #1",
+      description: "Thông tin về việc thanh toán bằng Pi cho điện thoại.",
+      image: "https://v..payofpi.click/images/faq1.jpg"
+    };
+  }
+
+  // Trả về metadata
+  res.status(200).json(metadata);
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
