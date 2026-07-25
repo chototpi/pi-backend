@@ -1,123 +1,766 @@
 import express from "express";
-import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
-// Xóa import ObjectId vì không cần thiết nếu dùng Mongoose cho route /post/:id
-import { MongoClient, ObjectId } from "mongodb"; // Comment hoặc xóa dòng này
 
 dotenv.config();
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors({
-  origin: "https://testnet.chototpi.site"
-}));
+const PI_API_BASE = "https://api.minepi.com/v2";
+const PI_NETWORK_API_KEY = process.env.PI_NETWORK_API_KEY;
+
+
+// =====================================================
+// CORS
+// =====================================================
+
+const allowedOrigins = [
+  "https://mobile-world-orpin.vercel.app",
+  "https://payofpi.click",
+  "https://vn.payofpi.click",
+  "https://chototpi.site",
+  "https://testnet.chototpi.site",
+  "https://payofpi2196.pinet.com",
+  "https://thgiith7068.pinet.com",
+];
+
+app.use(
+  cors({
+    origin(origin, callback) {
+
+      console.log("🌐 Origin:", origin);
+
+      // curl / Postman / server-to-server
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Pi App Studio preview
+      if (origin.endsWith(".vusercontent.net")) {
+        console.log(
+          "✅ Allowed vusercontent:",
+          origin
+        );
+
+        return callback(null, true);
+      }
+
+      console.log(
+        "❌ CORS blocked:",
+        origin
+      );
+
+      return callback(
+        new Error(
+          `CORS blocked for: ${origin}`
+        )
+      );
+    },
+
+    credentials: true,
+  })
+);
+
 app.use(express.json());
-// Xóa client vì không sử dụng MongoDB native driver trong route /post/:id
-const client = new MongoClient(process.env.MONGODB_URI, {});
 
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log("✅ Đã kết nối MongoDB"))
-.catch(err => console.error("❌ MongoDB lỗi:", err));
 
-const db = mongoose.connection.useDb("chototpi");
+// =====================================================
+// CHECK PI API KEY
+// =====================================================
 
-// ----- Định nghĩa Schema -----
-const postSchema = new mongoose.Schema({
-  username: String,
-  title: String,
-  menu: String,
-  description: String,
-  price: String,
-  contact: String,
-  adress: String,
-  images: [String],
-  approved: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now }
-});
+if (!PI_NETWORK_API_KEY) {
+  console.error(
+    "❌ PI_NETWORK_API_KEY is missing"
+  );
+}
 
-const Post = db.model("Post", postSchema);
 
-// ----- Trang chủ -----
-app.get("/", (req, res) => {
-  res.send("Pi Marketplace backend đang chạy...");
-});
+// =====================================================
+// PI API HELPER
+// =====================================================
 
+async function piRequest(
+  path,
+  options = {}
+) {
+
+  if (!PI_NETWORK_API_KEY) {
+    throw new Error(
+      "PI_NETWORK_API_KEY is not configured"
+    );
+  }
+
+  const response = await fetch(
+    `${PI_API_BASE}${path}`,
+    {
+      ...options,
+
+      headers: {
+        Authorization:
+          `Key ${PI_NETWORK_API_KEY}`,
+
+        "Content-Type":
+          "application/json",
+
+        ...(options.headers || {}),
+      },
+    }
+  );
+
+  const text =
+    await response.text();
+
+  let data = null;
+
+  if (text) {
+    try {
+
+      data =
+        JSON.parse(text);
+
+    } catch {
+
+      data = {
+        raw: text,
+      };
+
+    }
+  }
+
+  if (!response.ok) {
+
+    const error =
+      new Error(
+        `Pi API returned ${response.status}`
+      );
+
+    error.status =
+      response.status;
+
+    error.piResponse =
+      data;
+
+    throw error;
+  }
+
+  return data;
+}
+
+
+// =====================================================
+// GET PAYMENT FROM PI
+// =====================================================
+
+async function getPiPayment(
+  paymentId
+) {
+
+  return piRequest(
+    `/payments/${encodeURIComponent(paymentId)}`,
+    {
+      method: "GET",
+    }
+  );
+}
+
+
+// =====================================================
+// HEALTH
+// =====================================================
+
+app.get(
+  "/health",
+  (req, res) => {
+
+    res.json({
+      success: true,
+      service:
+        "Mobile World Pi Payment Backend",
+
+      piApiKeyConfigured:
+        Boolean(
+          PI_NETWORK_API_KEY
+        ),
+    });
+  }
+);
+
+
+// =====================================================
+// GET PAYMENT
+//
+// Debug/status endpoint.
+// Data comes directly from Pi.
+// =====================================================
+
+app.get(
+  "/pi/payments/:paymentId",
+  async (req, res) => {
+
+    try {
+
+      const {
+        paymentId
+      } = req.params;
+
+      if (!paymentId) {
+
+        return res.status(400).json({
+          success: false,
+          error: "Missing paymentId",
+        });
+
+      }
+
+      const payment =
+        await getPiPayment(
+          paymentId
+        );
+
+      return res.json({
+        success: true,
+        payment,
+      });
+
+    } catch (err) {
+
+      console.error(
+        "❌ GET PAYMENT ERROR:",
+        err
+      );
+
+      return res
+        .status(
+          err.status || 500
+        )
+        .json({
+          success: false,
+
+          error:
+            err.message ||
+            "Unable to get payment",
+
+          piResponse:
+            err.piResponse ||
+            null,
+        });
+    }
+  }
+);
+
+
+// =====================================================
 // APPROVE PAYMENT
-app.post("/approve-payment", async (req, res) => {
-  const { paymentId } = req.body;
-  console.log("Approve request for:", paymentId);
+//
+// Called from:
+// onReadyForServerApproval(paymentId)
+// =====================================================
 
-  if (!paymentId) {
-    return res.status(400).json({ error: "Missing paymentId" });
-  }
+app.post(
+  "/pi/payments/:paymentId/approve",
+  async (req, res) => {
 
-  try {
-    const response = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/approve`, {
-      method: "POST",
-      headers: {
-        Authorization: `Key ${process.env.PI_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({})  // NEW body each time
-    });
+    const {
+      paymentId
+    } = req.params;
 
-    const text = await response.text();
-    console.log("Approve raw response:", text);
+    try {
 
-    if (!response.ok) {
-      console.error("Approve failed:", text);
-      return res.status(500).json({ error: text });
+      console.log(
+        "🟡 APPROVE:",
+        paymentId
+      );
+
+      if (!paymentId) {
+
+        return res.status(400).json({
+          success: false,
+          error: "Missing paymentId",
+        });
+
+      }
+
+
+      // ===============================================
+      // 1. Get payment from Pi
+      // ===============================================
+
+      const payment =
+        await getPiPayment(
+          paymentId
+        );
+
+      console.log(
+        "📦 PAYMENT:",
+        payment
+      );
+
+
+      // ===============================================
+      // 2. Basic validation
+      // ===============================================
+
+      const amount =
+        Number(
+          payment?.amount
+        );
+
+      if (
+        !Number.isFinite(amount) ||
+        amount <= 0
+      ) {
+
+        return res.status(400).json({
+          success: false,
+          error:
+            "Invalid payment amount",
+        });
+
+      }
+
+
+      /*
+       * IMPORTANT
+       *
+       * Đây là vị trí chúng ta sẽ thêm:
+       *
+       * productId -> DB/API sản phẩm
+       *             -> expected price
+       *             -> compare payment.amount
+       *
+       * Không dùng metadata từ frontend
+       * làm nguồn xác định giá.
+       */
+
+
+      // ===============================================
+      // 3. Approve payment
+      // ===============================================
+
+      const approved =
+        await piRequest(
+          `/payments/${encodeURIComponent(
+            paymentId
+          )}/approve`,
+          {
+            method: "POST",
+            body: JSON.stringify({}),
+          }
+        );
+
+
+      console.log(
+        "✅ APPROVED:",
+        paymentId
+      );
+
+
+      return res.json({
+        success: true,
+        paymentId,
+        payment: approved,
+      });
+
+    } catch (err) {
+
+      console.error(
+        "❌ APPROVE ERROR:",
+        err
+      );
+
+
+      return res
+        .status(
+          err.status || 500
+        )
+        .json({
+          success: false,
+
+          error:
+            err.message ||
+            "Approve failed",
+
+          piResponse:
+            err.piResponse ||
+            null,
+        });
     }
-
-    const result = JSON.parse(text);
-    res.json(result);
-  } catch (err) {
-    console.error("Approve ERROR:", err);
-    res.status(500).json({ error: "Server error (approve)" });
   }
-});
+);
 
+
+// =====================================================
 // COMPLETE PAYMENT
-app.post("/complete-payment", async (req, res) => {
-  const { paymentId, txid } = req.body;
-  console.log("Complete request:", paymentId, txid);
+//
+// Called from:
+// onReadyForServerCompletion(paymentId, txid)
+// =====================================================
 
-  if (!paymentId || !txid) {
-    return res.status(400).json({ error: "Missing paymentId or txid" });
+app.post(
+  "/pi/payments/:paymentId/complete",
+  async (req, res) => {
+
+    const {
+      paymentId
+    } = req.params;
+
+    const {
+      txid
+    } = req.body;
+
+
+    try {
+
+      console.log(
+        "🟢 COMPLETE:",
+        paymentId
+      );
+
+      console.log(
+        "🔗 TXID:",
+        txid
+      );
+
+
+      if (
+        !paymentId ||
+        !txid
+      ) {
+
+        return res.status(400).json({
+          success: false,
+
+          error:
+            "Missing paymentId or txid",
+        });
+
+      }
+
+
+      // ===============================================
+      // 1. Get payment before completion
+      // ===============================================
+
+      const paymentBefore =
+        await getPiPayment(
+          paymentId
+        );
+
+
+      console.log(
+        "📦 BEFORE COMPLETE:",
+        paymentBefore
+      );
+
+
+      const amount =
+        Number(
+          paymentBefore?.amount
+        );
+
+
+      if (
+        !Number.isFinite(amount) ||
+        amount <= 0
+      ) {
+
+        return res.status(400).json({
+          success: false,
+
+          error:
+            "Invalid payment amount",
+        });
+
+      }
+
+
+      /*
+       * Sau này validate order/product ở đây
+       * lần thứ hai trước khi complete.
+       */
+
+
+      // ===============================================
+      // 2. Complete payment
+      // ===============================================
+
+      const completed =
+        await piRequest(
+          `/payments/${encodeURIComponent(
+            paymentId
+          )}/complete`,
+          {
+            method: "POST",
+
+            body:
+              JSON.stringify({
+                txid,
+              }),
+          }
+        );
+
+
+      // ===============================================
+      // 3. Fetch authoritative final state
+      // ===============================================
+
+      const verified =
+        await getPiPayment(
+          paymentId
+        );
+
+
+      console.log(
+        "💰 VERIFIED PAYMENT:",
+        verified
+      );
+
+
+      return res.json({
+        success: true,
+
+        paymentId,
+        txid,
+
+        payment:
+          verified ||
+          completed,
+      });
+
+    } catch (err) {
+
+      console.error(
+        "❌ COMPLETE ERROR:",
+        err
+      );
+
+
+      return res
+        .status(
+          err.status || 500
+        )
+        .json({
+          success: false,
+
+          error:
+            err.message ||
+            "Complete failed",
+
+          piResponse:
+            err.piResponse ||
+            null,
+        });
+    }
   }
+);
 
-  try {
-    const response = await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
-      method: "POST",
-      headers: {
-        Authorization: `Key ${process.env.PI_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ txid }) // <-- Thêm txid vào body
-    });
 
-    const text = await response.text();
-    console.log("Complete raw response:", text);
+// =====================================================
+// INCOMPLETE PAYMENT
+//
+// Called by:
+// onIncompletePaymentFound(payment)
+//
+// Đây không phải endpoint để frontend tuyên bố
+// payment thành công.
+//
+// Backend hỏi Pi về trạng thái payment.
+// Nếu SDK cung cấp txid thì mới gọi complete.
+// =====================================================
 
-    if (!response.ok) {
-      console.error("Complete failed:", text);
-      return res.status(500).json({ error: text });
+app.post(
+  "/pi/payments/incomplete",
+  async (req, res) => {
+
+    const {
+      paymentId,
+      txid,
+    } = req.body;
+
+
+    try {
+
+      console.log(
+        "🟠 INCOMPLETE:",
+        paymentId
+      );
+
+
+      if (!paymentId) {
+
+        return res.status(400).json({
+          success: false,
+          error: "Missing paymentId",
+        });
+
+      }
+
+
+      // ===============================================
+      // 1. Get payment state from Pi
+      // ===============================================
+
+      const payment =
+        await getPiPayment(
+          paymentId
+        );
+
+
+      console.log(
+        "📦 PAYMENT STATE:",
+        payment
+      );
+
+
+      // ===============================================
+      // 2. No txid
+      //
+      // Cannot invent completion.
+      // Return authoritative Pi state.
+      // ===============================================
+
+      if (!txid) {
+
+        return res.json({
+          success: true,
+
+          action:
+            "pending",
+
+          payment,
+        });
+
+      }
+
+
+      // ===============================================
+      // 3. Complete existing transaction
+      // ===============================================
+
+      const completed =
+        await piRequest(
+          `/payments/${encodeURIComponent(
+            paymentId
+          )}/complete`,
+          {
+            method: "POST",
+
+            body:
+              JSON.stringify({
+                txid,
+              }),
+          }
+        );
+
+
+      // ===============================================
+      // 4. Verify final state
+      // ===============================================
+
+      const verified =
+        await getPiPayment(
+          paymentId
+        );
+
+
+      console.log(
+        "✅ INCOMPLETE RESOLVED:",
+        paymentId
+      );
+
+
+      return res.json({
+        success: true,
+
+        action:
+          "completed",
+
+        payment:
+          verified ||
+          completed,
+      });
+
+    } catch (err) {
+
+      console.error(
+        "❌ INCOMPLETE ERROR:",
+        err
+      );
+
+
+      return res
+        .status(
+          err.status || 500
+        )
+        .json({
+          success: false,
+
+          error:
+            err.message ||
+            "Incomplete payment handling failed",
+
+          piResponse:
+            err.piResponse ||
+            null,
+        });
+    }
+  }
+);
+
+
+// =====================================================
+// EXPRESS ERROR HANDLER
+// =====================================================
+
+app.use(
+  (err, req, res, next) => {
+
+    console.error(
+      "❌ EXPRESS ERROR:",
+      err
+    );
+
+
+    if (
+      err.message?.startsWith(
+        "CORS blocked"
+      )
+    ) {
+
+      return res.status(403).json({
+        success: false,
+        error: err.message,
+      });
+
     }
 
-    const result = JSON.parse(text);
-    res.json(result);
-  } catch (err) {
-    console.error("Complete ERROR:", err);
-    res.status(500).json({ error: "Server error (complete)" });
+
+    return res.status(500).json({
+      success: false,
+      error:
+        "Internal server error",
+    });
   }
-});
+);
 
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// =====================================================
+// START SERVER
+// =====================================================
+
+app.listen(
+  PORT,
+  () => {
+
+    console.log(
+      `🚀 Mobile World Pi backend running on port ${PORT}`
+    );
+
+  }
+);
