@@ -749,6 +749,65 @@ app.use(
   }
 );
 
+app.post(
+  "/signin",
+  async (req, res) => {
+
+    const { accessToken } = req.body;
+
+    if (!accessToken) {
+        return res.status(400).json({
+            success: false,
+            error: "Missing accessToken"
+        });
+    }
+
+    try {
+
+        // Xác thực trực tiếp với Pi API
+        const me = await axios.get(
+            "https://api.minepi.com/v2/me",
+            {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                },
+                timeout: 10000
+            }
+        );
+
+        console.log("✅ Pi verify (direct)");
+
+        return res.json({
+            success: true,
+            user: me.data
+        });
+
+    } catch (err) {
+
+        console.error(
+            "❌ Pi verify failed:",
+            err.response?.data || err.message
+        );
+
+        // Token không hợp lệ hoặc hết hạn
+        if (err.response?.status === 401 ||
+            err.response?.status === 403) {
+
+            return res.status(401).json({
+                success: false,
+                error: "User not authorized"
+            });
+        }
+
+        // Lỗi kết nối hoặc Pi API không phản hồi
+        return res.status(502).json({
+            success: false,
+            error: "Pi API unavailable"
+        });
+
+    }
+
+});
 
 // =====================================================
 // START SERVER
